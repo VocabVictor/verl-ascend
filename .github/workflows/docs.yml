@@ -33,10 +33,22 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r docs/requirements-docs.txt
         
-    - name: Build documentation
+    - name: Build English documentation
       run: |
         cd docs
         make html
+        
+    - name: Build Chinese documentation
+      run: |
+        cd docs_cn
+        make html
+        
+    - name: Combine documentation
+      run: |
+        mkdir -p combined_docs
+        cp -r docs/_build/html/* combined_docs/
+        mkdir -p combined_docs/zh
+        cp -r docs_cn/_build/html/* combined_docs/zh/
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
@@ -44,7 +56,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: docs/_build/html
+        path: combined_docs
 
   deploy:
     environment:

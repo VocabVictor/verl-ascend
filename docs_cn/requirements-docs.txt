@@ -1,0 +1,15 @@
+# markdown support
+recommonmark
+myst_parser
+# markdown table support
+sphinx-markdown-tables
+
+# theme default rtd
+sphinx-rtd-theme
+
+# sphinx extensions
+sphinx
+sphinx-autobuild
+
+# pin tokenizers version to avoid env_logger version req
+tokenizers==0.21

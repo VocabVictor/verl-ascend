@@ -1,0 +1,840 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>安装 &mdash; VERL 中文文档</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="canonical" href="https://vocabvictor.github.io/verl-ascend/zh/start/install.html" />
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7d86a446"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/translations.js?v=beaddf03"></script>
+      <script src="../_static/js/runllm-widget.js?v=53011e60"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../genindex.html" />
+    <link rel="search" title="搜索" href="../search.html" />
+    <link rel="next" title="快速入门：在GSM8K数据集上进行PPO训练" href="quickstart.html" />
+    <link rel="prev" title="欢迎来到verl的文档！" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            verl - 中文文档
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+              <p class="caption" role="heading"><span class="caption-text">快速开始</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">安装</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id2">需求</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">后端引擎的选择</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#docker">从 Docker 镜像安装</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">从自定义环境安装</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id7">前提条件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id10">安装依赖</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#verl">安装 verl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">安装后</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#amd-gpu-rocm">在 AMD GPU 上安装 - ROCM 内核支持</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id12">构建镜像</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">启动容器</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">快速入门：在GSM8K数据集上进行PPO训练</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#id2">介绍</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#id4">数据集介绍</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#id5">步骤 1：准备数据集</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#id10">步骤 2：下载后训练模型</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#ppo">步骤 3：使用指令模型进行 PPO 训练</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="multinode.html">多节点训练</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="multinode.html#id2">手册</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="multinode.html#ray">设置多节点 Ray 集群</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multinode.html#id3">提交作业到 Ray 集群</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="multinode.html#slurm">Slurm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multinode.html#dstack">dstack</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="multinode.html#id12">先决条件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multinode.html#id19">运行 Ray 集群任务</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multinode.html#id40">提交 Ray 作业</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="multinode.html#id50">如何进行调试？</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="multinode.html#ray-vscode">Ray 分布式调试器 VSCode 扩展（推荐）</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multinode.html#id68">遗留 Ray 调试器</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="multinode.html#amd">多节点训练在AMD集群上</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="multinode.html#slurm-script-sh">slurm_script.sh</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="multinode.html#id74">###以下设置应在不同的项目和集群中进行设置###</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="multinode.html#id111">运行多节点训练，使用上述 slurm_script.sh</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ray_debug_tutorial.html">Ray 调试教程</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ray_debug_tutorial.html#id1">如何调试？</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ray_debug_tutorial.html#ray-vscode">Ray 分布式调试器 VSCode 扩展（推荐）</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ray_debug_tutorial.html#id11">遗留 Ray 调试器</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="more_resources.html">更多资源</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">配置</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples/config.html">配置说明</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/config.html#rl-fsdpppo-trainer-yaml">用于RL FSDP后端的ppo_trainer.yaml</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#id2">数据</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#id3">定制数据集</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#id4">演员/回放/参考策略</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/config.html#megatron">Megatron 优化器和优化器参数调度器</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#critic">Critic 模型</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#reward">Reward 模型</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#id27">自定义奖励函数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#id30">算法</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#id32">训练器</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/config.html#evaluation-yaml">evaluation.yaml</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#id49">数据</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#id54">自定义奖励函数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/config.html#id79">模型</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">算法</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../algo/ppo.html">近端策略优化 (PPO)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algo/ppo.html#id1">关键组件</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../algo/ppo.html#id2">PPO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algo/ppo.html#id3">配置</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/ppo.html#id4">高级扩展</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../algo/ppo.html#kl">KL 散度控制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../algo/ppo.html#id5">双重剪切 PPO</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/ppo.html#id6">参考示例</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../algo/grpo.html">组相对策略优化 (GRPO)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algo/grpo.html#id1">关键组件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/grpo.html#id2">配置</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/grpo.html#id3">高级扩展</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../algo/grpo.html#drgrpo">DrGRPO</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/grpo.html#id4">参考示例</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../algo/dapo.html">配方: 分离的剪辑和动态采样策略优化 (DAPO)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algo/dapo.html#id1">快速入门</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/dapo.html#id2">复现运行</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/dapo.html#id3">配置</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../algo/dapo.html#epsilons">分离剪裁 Epsilons (-&gt; 剪裁-更高)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../algo/dapo.html#id4">动态采样（带有分组过滤）</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../algo/dapo.html#id5">灵活的损失聚合模式 (-&gt; 标记级损失)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../algo/dapo.html#id6">过长奖励塑造</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/dapo.html#faq">常见问题解答 (FAQ)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../algo/dapo.html#overlong-filtering">论文中的&quot;过长过滤(Overlong Filtering)&quot;在哪里？</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../algo/dapo.html#mainrecipe-daporecipe-dapo">在<code class="docutils literal notranslate"><span class="pre">main</span></code>分支中的<code class="docutils literal notranslate"><span class="pre">recipe/dapo</span></code>目录与<code class="docutils literal notranslate"><span class="pre">recipe/dapo</span></code>分支有什么区别？</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../algo/dapo.html#id7">为什么我在修改后无法产生类似的结果？</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../algo/spin.html">食谱：自我对弈微调 (SPIN)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algo/spin.html#compute-online-dpo-loss">关键功能 (compute_online_dpo_loss) 和相关工作</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/spin.html#dpo">我们的在线 DPO 实现</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/spin.html#id1">算法</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/spin.html#id2">重现实验 (示例设置)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/spin.html#id3">配置</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/spin.html#id4">关键文件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/spin.html#id5">致谢</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../algo/sppo.html">配方：自我游戏偏好优化 (SPPO)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algo/sppo.html#id1">重现实验</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/sppo.html#id2">致谢</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../algo/entropy.html">配方: 熵机制</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../algo/entropy.html#id2">大型语言模型推理的强化学习熵机制</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algo/entropy.html#id3">🎉新闻</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/entropy.html#id4">✨开始使用</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/entropy.html#id5">📖介绍</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/entropy.html#id6">📃评估</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/entropy.html#id7">🎈引用</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/entropy.html#acknowledgement">🌻Acknowledgement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/entropy.html#id8">📬 联系方式</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../algo/opo.html">最优奖励基线的在线策略强化学习 (OPO)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algo/opo.html#id1">关键组件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/opo.html#id2">配置</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/opo.html#id3">高级扩展</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../algo/baseline.html">算法基准</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algo/baseline.html#id2">与数学相关的数据集</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../algo/baseline.html#gsm8k">GSM8k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../algo/baseline.html#dapo-17k">DAPO 数学-17k</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/baseline.html#id3">与编码相关的数据集</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../algo/baseline.html#id4">注意事项</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../algo/gpg.html">GPG: 群体策略梯度</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algo/gpg.html#id1">关键组件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/gpg.html#id2">配置</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algo/gpg.html#id3">高级扩展</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">PPO 训练器和工作者</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../workers/ray_trainer.html">PPO Ray Trainer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../workers/ray_trainer.html#id1">数据准备</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workers/ray_trainer.html#workergroup">WorkerGroup 初始化</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workers/ray_trainer.html#ppo">PPO 训练循环</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../workers/fsdp_workers.html">PyTorch FSDP 后端</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../workers/fsdp_workers.html#fsdp-workers">FSDP Workers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../workers/fsdp_workers.html#actorrolloutrefworker">ActorRolloutRefWorker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../workers/fsdp_workers.html#actor-rollout-hybridengine">Actor/Rollout HybridEngine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../workers/fsdp_workers.html#id2">参考模型</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../workers/fsdp_workers.html#criticworker-rewardworker">CriticWorker 和 RewardWorker</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../workers/fsdp_workers.html#hybridshard">HybridShard</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../workers/megatron_workers.html">Megatron-LM 后端</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../workers/megatron_workers.html#id1">开发进展</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workers/megatron_workers.html#megatron-workers">Megatron Workers 的工具</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../workers/megatron_workers.html#megatronworker">MegatronWorker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../workers/megatron_workers.html#actorrolloutrefworker">ActorRolloutRefWorker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../workers/megatron_workers.html#actor-rollout-hybridengine">Actor/Rollout HybridEngine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../workers/megatron_workers.html#id3">参考模型</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../workers/megatron_workers.html#criticworker-rewardworker">CriticWorker 和 RewardWorker</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../workers/megatron_workers.html#id4">训练优化的工具</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../workers/megatron_workers.html#id5">卸载</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../workers/megatron_workers.html#profiler">Profiler</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../workers/megatron_workers.html#mcore">相关 MCore 文档</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../workers/sglang_worker.html">SGLang 后端</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../workers/sglang_worker.html#sglang-ppo">使用 SGLang 作为单机 PPO 训练的推理后端</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../workers/sglang_worker.html#sgl-disable-tp-memory-inbalance-check">为什么要导出SGL_DISABLE_TP_MEMORY_INBALANCE_CHECK?</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../workers/sglang_worker.html#gpu">为什么会存在不一致的GPU内存？</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../workers/sglang_worker.html#sglangppo">使用SGLang作为PPO训练跨多台机器的推理后端</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">性能调优指南</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../perf/dpsk.html">训练 DeepSeek 671b</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../perf/dpsk.html#id1">入门指南</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../perf/dpsk.html#id2">DeepSeek 671b</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../perf/dpsk.html#qwen3-236b">Qwen3 236b</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../perf/dpsk.html#id3">即将到来的优化</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../perf/dpsk.html#id4">致谢</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../perf/perf_tuning.html">性能调优指南</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../perf/perf_tuning.html#rollout">Rollout生成调优</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../perf/perf_tuning.html#id2">启用去除填充（序列打包）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../perf/perf_tuning.html#id7">批量大小调优</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../perf/perf_tuning.html#id18">批大小调优提示</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../perf/perf_tuning.html#id19">动态批量大小的调优</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../perf/perf_tuning.html#id20">动态批量大小调优技巧</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../perf/perf_tuning.html#ligerkernel-sft">LigerKernel 用于 SFT</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../perf/perf_tuning.html#fsdp">FSDP 训练后端中的前向预取</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../perf/perf_tuning.html#logits">从 logits 计算熵的内存优化</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../README_vllm0.8.html">升级至 vLLM &gt;= 0.8</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../README_vllm0.8.html#id1">安装</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../README_vllm0.8.html#id2">特性</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../README_vllm0.8.html#id3">注意事项</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../perf/device_tuning.html">硬件资源需求用于强化学习</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../perf/device_tuning.html#b">405B</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../perf/nsight_profiling.html">NVIDIA Nsight Systems 在 verl 中的性能分析</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../perf/nsight_profiling.html#id1">配置</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../perf/nsight_profiling.html#id2">先决条件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../perf/nsight_profiling.html#id3">全局分析控制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../perf/nsight_profiling.html#id4">工作进程分析</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../perf/nsight_profiling.html#id5">在哪里找到分析数据</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../perf/nsight_profiling.html#id6">使用示例</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../perf/nsight_profiling.html#id7">禁用性能分析器</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../perf/nsight_profiling.html#id8">启用性能分析器并为一个训练步骤设置一个数据库</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../perf/nsight_profiling.html#id9">启用分析器和多个数据库以进行一次训练步骤</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../perf/nsight_profiling.html#id10">分析输出</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">高级功能</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../advance/checkpoint.html">使用检查点支持容错训练</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../advance/checkpoint.html#id4">检查点保存目录结构</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advance/checkpoint.html#fsdpmegatron-checkpointshuggingface">将FSDP和Megatron Checkpoints转换为HuggingFace格式模型</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advance/checkpoint.html#megatron">Megatron(梅加特龙) 合并器详细信息</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advance/checkpoint.html#huggingfacemegatron-distcheckpoint">HuggingFace转换为Megatron DistCheckpoint详细信息</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advance/checkpoint.html#id53">原始检查点工具</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../advance/rope.html">RoPE缩放覆盖</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../advance/ppo_lora.html">RL(HF) 算法与 LoRA 支持</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../advance/ppo_lora.html#id1">使用指南</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advance/ppo_lora.html#id2">最佳实践和注意事项</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advance/ppo_lora.html#id7">示例脚本</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sglang_multiturn/multiturn.html">多轮发布支持</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/multiturn.html#id2">基本配置</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/multiturn.html#id3">自定义工具配置</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/multiturn.html#id12">多轮对话标记化</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/multiturn.html#id15">特殊情况</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/multiturn.html#id42">训练与推理模板之间的差异</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/multiturn.html#gsm8k">GSM8K 多轮训练性能</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/multiturn.html#id43">交互系统</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/interaction_system.html">多轮强化学习训练的交互系统</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id2">概述</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id3">架构</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id29">配置</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#gsm8k">实现示例: GSM8K</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id46">训练集成</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id55">最佳实践</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id60">高级用法</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id93">故障排除</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id94">相关文档</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/multiturn.html#id44">搜索工具集成</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/search_tool_example.html">搜索工具集成</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/search_tool_example.html#id2">介绍</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/search_tool_example.html#id3">快速重现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/search_tool_example.html#id31">自定义搜索配置</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/search_tool_example.html#id32">笔记</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/multiturn.html#id45">代码讲解</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../sglang_multiturn/interaction_system.html">多轮强化学习训练的交互系统</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id2">概述</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id3">架构</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id4">核心组件</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id29">配置</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#gsm8k">实现示例: GSM8K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id46">训练集成</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id55">最佳实践</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id60">高级用法</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id93">故障排除</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/interaction_system.html#id94">相关文档</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../advance/placement.html">Ray API 设计教程</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../advance/dpo_extension.html">扩展到其他强化学习(HF)算法</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../advance/dpo_extension.html#id1">整体方法</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advance/dpo_extension.html#dpo">示例：在线DPO</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../advance/dpo_extension.html#gpu">第1步：什么是多机多GPU计算</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../advance/dpo_extension.html#id10"><strong>注意: 如何区分控制过程和分布式计算过程</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../advance/dpo_extension.html#id11">第二步: 基于不同的分布式场景，实现单进程控制多进程数据交互</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../advance/dpo_extension.html#id30">第三步：主训练循环</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/sandbox_fusion_example.html">沙盒融合示例</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/sandbox_fusion_example.html#id2">介绍</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/sandbox_fusion_example.html#id3">第1步：准备数据集</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/sandbox_fusion_example.html#sandbox-fusion">第2步：设置Sandbox Fusion服务</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/sandbox_fusion_example.html#id4">第三步: 配置训练脚本</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">硬件支持</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html">AMD (ROCM 内核) 入门指南</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#id1">设置</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#docker-dockerfile-rocm">docker/Dockerfile.rocm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#id2">构建镜像：</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#id3">运行容器</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#root">可选：在非root模式下运行并具有用户权限</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#id4">示例</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#ppo">PPO</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#grpo">GRPO</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#docker-podman-slurm">多节点训练：使用 Docker/Podman 容器的 slurm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#slurm-script-sh">slurm_script.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../amd_tutorial/amd_build_dockerfile_page.html#id5">运行 slurm_script.sh</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../amd_tutorial/amd_vllm_page.html">verl 性能调优针对 AMD (ROCm 内核)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../amd_tutorial/amd_vllm_page.html#amd-gpu-vllm">为 AMD GPU 启用睡眠模式的 vLLM 补丁</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../amd_tutorial/amd_vllm_page.html#cuda-rocm">启用 CUDA 图并绕过与 ROCm 相关的问题</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html">verl x Ascend</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#id1">硬件支持</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#id2">安装</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#id3">基础环境准备</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#vllm-vllm-ascend">vllm &amp; vllm-ascend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#verl">安装verl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#id12">其他三方库说明</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#id13">快速开始</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#id22">支持现状</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#id23">精度对比说明</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#id25">吞吐对比说明</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#id26">计划</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ascend_tutorial/ascend_quick_start.html#id27">声明</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API 参考</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api/data.html">数据接口</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/data.html#tensordict">TensorDict</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/data.html#api">核心 API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/single_controller.html">单控制器接口</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/single_controller.html#api">核心 API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/trainer.html">Trainer 接口</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/trainer.html#api">核心 API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/utils.html">实用工具</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#python">Python 功能实用工具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#id2">文件系统实用工具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#id3">跟踪实用工具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#id4">指标实用工具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#id5">检查点管理</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#id6">数据集实用工具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#torch">Torch 功能实用工具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#id7">序列长度平衡</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#id8">乌利西斯工具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#fsdp">FSDP工具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/utils.html#id9">调试工具</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">常见问题解答</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../faq/faq.html">常见问题解答</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../faq/faq.html#ray">Ray相关</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../faq/faq.html#id2">如何在使用分布式Ray进行调试时添加断点？</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../faq/faq.html#rayletworker">&quot;无法向raylet注册worker&quot;</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../faq/faq.html#id3">分布式训练</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../faq/faq.html#id4">如何使用 Ray 在多节点后训练时运行？</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../faq/faq.html#slurm-verl">如何在由 Slurm 管理的集群上使用 verl？</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../faq/faq.html#id8">安装相关</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../faq/faq.html#notimplementederror-tensordict-in">NotImplementedError: TensorDict(张量字典) 不支持使用 <cite>in</cite> 关键字进行成员检查。</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../faq/faq.html#id13">非法内存访问</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../faq/faq.html#id18">检查点</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../faq/faq.html#triton-compile-module-from-src">Triton <code class="docutils literal notranslate"><span class="pre">compile_module_from_src</span></code> 错误</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../faq/faq.html#id39">如何生成 Ray 时间线以分析训练作业的性能？</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../faq/faq.html#wandb">如何仅为wandb设置代理？</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">开发笔记</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html">沙盒融合工具集成</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id2">动机</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#sandbox-fusion-faas">使用Sandbox Fusion + FaaS集成进行奖励计算</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id3">目标</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id4">非目标</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id5">设计细节</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id6">工具架构定义</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id11">配置参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id16">速率限制设计</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id37">工具实现</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id56">测试计划</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id57">单元测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#e2e">e2e 测试</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sglang_multiturn/sandbox_fusion.html#id66">}</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">verl - 中文文档</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="页面导航">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">安装</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/start/install.rst.txt" rel="nofollow"> 查看页面源码</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>安装<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<section id="id2">
+<h2>需求<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Python</strong>: 版本 &gt;= 3.9</p></li>
+<li><p><strong>CUDA</strong>: 版本 &gt;= 12.1</p></li>
+</ul>
+<p>verl 支持多种后端。目前可用的配置如下：</p>
+<ul class="simple">
+<li><p><strong>FSDP</strong> 和 <a href="#id3"><span class="problematic" id="id4">**</span></a>Megatron-LM**（可选）用于训练。</p></li>
+<li><p><strong>SGLang</strong>、<strong>vLLM</strong> 和 <strong>TGI</strong> 用于回滚生成。</p></li>
+</ul>
+</section>
+<section id="id5">
+<h2>后端引擎的选择<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p># 安装说明</p>
+<p>## 训练 (Training)</p>
+<p>我们建议使用 <strong>FSDP</strong> 后端来研究、探索和原型不同的模型、数据集和强化学习（RL）算法。有关使用 FSDP 后端的指南可以在 <a class="reference internal" href="../workers/fsdp_workers.html"><span class="doc">FSDP Workers</span></a> 中找到。</p>
+<p>对于追求更好可扩展性的用户，我们建议使用 <strong>Megatron-LM</strong> 后端。目前，我们支持 <a class="reference external" href="https://github.com/NVIDIA/Megatron-LM/tree/v0.11.0">Megatron-LM v0.11</a>。有关使用 Megatron-LM 后端的指南可以在 <a class="reference internal" href="../workers/megatron_workers.html"><span class="doc">Megatron-LM Workers</span></a> 中找到。</p>
+<ol class="arabic simple" start="2">
+<li><p>推理：</p></li>
+</ol>
+<p>对于推理，vllm 0.8.3 及更高版本已测试稳定。我们建议开启环境变量 <cite>VLLM_USE_V1=1</cite> 以获得最佳性能。</p>
+<p>有关 SGLang 的详细安装和使用说明，请参考 <a class="reference internal" href="../workers/sglang_worker.html"><span class="doc">SGLang Backend</span></a>。SGLang 的推出正在广泛开发中，并提供许多高级功能和优化。我们鼓励用户通过 <a class="reference external" href="https://github.com/zhaochenyang20/Awesome-ML-SYS-Tutorial/issues/106">SGLang Issue Tracker</a> 报告任何问题或提供反馈。</p>
+<p>对于 huggingface TGI 集成，通常用于调试和单 GPU 探索。</p>
+</section>
+<section id="docker">
+<h2>从 Docker 镜像安装<a class="headerlink" href="#docker" title="Link to this heading"></a></h2>
+<p>我们提供预构建的 Docker 镜像以便快速设置。</p>
+<p>对于与 Megatron 或 FSDP 结合使用的 vLLM，请使用稳定版本的镜像 <code class="docutils literal notranslate"><span class="pre">whatcanyousee/verl:ngc-cu124-vllm0.8.5-sglang0.4.6.post5-mcore0.12.1-te2.3-deepseekv3</span></code>，该镜像支持 DeepSeek-V3 671B 后训练。</p>
+<p>对于最新的 vLLM 与 FSDP，请参考 <code class="docutils literal notranslate"><span class="pre">hiyouga/verl:ngc-th2.6.0-cu126-vllm0.8.4-flashinfer0.2.2-cxx11abi0</span></code>。</p>
+<p>对于与 FSDP 结合使用的 SGLang，请使用 <code class="docutils literal notranslate"><span class="pre">ocss884/verl-sglang:ngc-th2.6.0-cu126-sglang0.4.6.post5</span></code>，该镜像由 SGLang RL 组提供。</p>
+<p>查看 <code class="docutils literal notranslate"><span class="pre">docker/</span></code> 目录下的文件以获取基于 NGC 的镜像，或者如果您想构建自己的镜像。</p>
+<ol class="arabic simple">
+<li><p>启动所需的 Docker 镜像并进入其中：</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>create<span class="w"> </span>--runtime<span class="o">=</span>nvidia<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--net<span class="o">=</span>host<span class="w"> </span>--shm-size<span class="o">=</span><span class="s2">&quot;10g&quot;</span><span class="w"> </span>--cap-add<span class="o">=</span>SYS_ADMIN<span class="w"> </span>-v<span class="w"> </span>.:/workspace/verl<span class="w"> </span>--name<span class="w"> </span>verl<span class="w"> </span>&lt;image:tag&gt;
+docker<span class="w"> </span>start<span class="w"> </span>verl
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>verl<span class="w"> </span>bash
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>在容器内，安装最新的 verl：</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 安装夜间版本（推荐）</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/volcengine/verl<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>verl
+<span class="c1"># 选择您想要的推理引擎：vllm 或 sglang</span>
+<span class="c1"># pip3 install -e .[vllm]</span>
+<span class="c1"># pip3 install -e .[sglang]</span>
+<span class="c1"># 或者通过以下方式从 pypi 安装，而不是从 git：</span>
+<span class="c1"># pip3 install verl[vllm]</span>
+<span class="c1"># pip3 install verl[sglang]</span>
+</pre></div>
+</div>
+<p>Docker 镜像 <code class="docutils literal notranslate"><span class="pre">whatcanyousee/verl:ngc-cu124-vllm0.8.5-sglang0.4.6.post5-mcore0.12.1-te2.3-deepseekv3</span></code> 的构建配置如下：</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>PyTorch</strong>: 2.6.0+cu124</p></li>
+<li><p><strong>CUDA</strong>: 12.4</p></li>
+<li><p><strong>cuDNN</strong>: 9.8.0</p></li>
+<li><p><strong>nvidia-cudnn-cu12</strong>: 9.8.0.87，<strong>对于使用 Megatron FusedAttention 和 MLA 支持非常重要</strong></p></li>
+<li><p><strong>Flash Attention</strong>: 2.7.4.post1</p></li>
+<li><p><strong>Flash Infer</strong>: 0.2.5</p></li>
+<li><p><strong>vLLM</strong>: 0.8.5</p></li>
+<li><p><strong>SGLang</strong>: 0.4.6.post5</p></li>
+<li><p><strong>Megatron-LM</strong>: core_v0.12.1</p></li>
+<li><p><strong>TransformerEngine</strong>: 2.3</p></li>
+<li><p><strong>Ray</strong>: 2.44.1</p></li>
+</ul>
+</div></blockquote>
+<p>对于具有 EFA 网络接口的 AWS 实例 (Sagemaker AI Pod)，
+您需要按照 <code class="docutils literal notranslate"><span class="pre">docker/Dockerfile.awsefa</span></code> 中所示安装 EFA 驱动程序。</p>
+</section>
+<section id="id6">
+<h2>从自定义环境安装<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>我们建议使用 Docker 镜像以便于操作。然而，如果您的环境与 Docker 镜像不兼容，您也可以在 Python 环境中安装 verl。</p>
+<section id="id7">
+<h3>前提条件<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>为了使训练和推理引擎能够更好地利用更快的硬件支持，需要安装CUDA/cuDNN及其他依赖项，并且在安装其他软件包时，有些依赖项容易被覆盖，因此我们将它们放在:ref:<a href="#id8"><span class="problematic" id="id9">`</span></a>安装后`步骤中。</p>
+<p>我们需要安装以下先决条件：</p>
+<ul class="simple">
+<li><p><strong>CUDA</strong>: 版本 &gt;= 12.4</p></li>
+<li><p><strong>cuDNN</strong>: 版本 &gt;= 9.8.0</p></li>
+<li><p><strong>Apex</strong></p></li>
+</ul>
+<p>建议使用版本高于12.4的CUDA作为Docker镜像，请参考`NVIDIA的官方网站 &lt;<a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">https://developer.nvidia.com/cuda-toolkit-archive</a>&gt;`_以获取其他版本的CUDA。</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 将目录更改为您喜欢的任何位置，不建议在源代码目录中</span>
+wget<span class="w"> </span>https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_amd64.deb
+dpkg<span class="w"> </span>-i<span class="w"> </span>cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_amd64.deb
+cp<span class="w"> </span>/var/cuda-repo-ubuntu2204-12-4-local/cuda-*-keyring.gpg<span class="w"> </span>/usr/share/keyrings/
+apt-get<span class="w"> </span>update
+apt-get<span class="w"> </span>-y<span class="w"> </span>install<span class="w"> </span>cuda-toolkit-12-4
+update-alternatives<span class="w"> </span>--set<span class="w"> </span>cuda<span class="w"> </span>/usr/local/cuda-12.4
+</pre></div>
+</div>
+<p>cuDNN 可以通过以下命令安装，其他版本的 cuDNN 请参考 <a class="reference external" href="https://developer.nvidia.com/rdp/cudnn-archive">NVIDIA 官方网站</a>。</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 将目录更改为您喜欢的任何位置，不建议在源代码目录中</span>
+wget<span class="w"> </span>https://developer.download.nvidia.com/compute/cudnn/9.8.0/local_installers/cudnn-local-repo-ubuntu2204-9.8.0_1.0-1_amd64.deb
+dpkg<span class="w"> </span>-i<span class="w"> </span>cudnn-local-repo-ubuntu2204-9.8.0_1.0-1_amd64.deb
+cp<span class="w"> </span>/var/cudnn-local-repo-ubuntu2204-9.8.0/cudnn-*-keyring.gpg<span class="w"> </span>/usr/share/keyrings/
+apt-get<span class="w"> </span>update
+apt-get<span class="w"> </span>-y<span class="w"> </span>install<span class="w"> </span>cudnn-cuda-12
+</pre></div>
+</div>
+<p>Megatron-LM 和 FSDP 训练需要 NVIDIA Apex。
+您可以通过以下命令安装，但请注意，这个步骤可能会花费很长时间。
+建议设置 <code class="docutils literal notranslate"><span class="pre">MAX_JOBS</span></code> 环境变量以加速安装过程，但不要设置得太大，否则内存会过载，您的机器可能会卡死。</p>
+<dl class="simple">
+<dt># 更改目录到您喜欢的任何位置，建议不要在 verl 源代码目录中</dt><dd><p>git clone <a class="reference external" href="https://github.com/NVIDIA/apex.git">https://github.com/NVIDIA/apex.git</a> &amp;&amp; cd apex &amp;&amp; MAX_JOB=32 pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings &quot;--build-option=--cpp_ext&quot; --config-settings &quot;--build-option=--cuda_ext&quot; ./</p>
+</dd>
+</dl>
+</section>
+<section id="id10">
+<h3>安装依赖<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p>我们建议使用一个全新的 conda 环境来安装 verl 及其依赖项。</p>
+<blockquote>
+<div><p><strong>请注意，推理框架通常会严格限制您的 pytorch 版本，如果不够注意，会直接覆盖您已安装的 pytorch。</strong></p>
+<p>作为对策，建议首先安装推理框架，并使用它们所需的 pytorch。对于 vLLM，如果您希望使用现有的 pytorch，请遵循他们的官方说明
+<a class="reference external" href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu.html#build-wheel-from-source">使用现有的 PyTorch 安装</a> 。</p>
+</div></blockquote>
+<ol class="arabic simple">
+<li><p>首先，为了管理环境，我们建议使用 conda：</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>verl<span class="w"> </span><span class="nv">python</span><span class="o">==</span><span class="m">3</span>.10
+conda<span class="w"> </span>activate<span class="w"> </span>verl
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>然后，执行我们在 verl 中提供的 <code class="docutils literal notranslate"><span class="pre">install.sh</span></code> 脚本：</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 确保您已激活 verl conda 环境</span>
+<span class="c1"># 如果您需要使用 megatron</span>
+bash<span class="w"> </span>scripts/install_vllm_sglang_mcore.sh
+<span class="c1"># 或者如果您只需要使用 FSDP</span>
+<span class="nv">USE_MEGATRON</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>bash<span class="w"> </span>scripts/install_vllm_sglang_mcore.sh
+</pre></div>
+</div>
+<p>如果您在此步骤中遇到错误，请检查脚本并手动按照脚本中的步骤操作。</p>
+</section>
+<section id="verl">
+<h3>安装 verl<a class="headerlink" href="#verl" title="Link to this heading"></a></h3>
+<p>要安装最新版本的 verl，最好的方法是从源代码克隆并安装它。然后您可以修改我们的代码以自定义您自己的后训练作业。</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/volcengine/verl.git
+<span class="nb">cd</span><span class="w"> </span>verl
+pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+</section>
+<section id="id11">
+<h3>安装后<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<p>请确保在安装其他软件包时不要覆盖已安装的软件包。</p>
+<p>值得检查的软件包包括：</p>
+<ul class="simple">
+<li><p><strong>torch</strong> 及其系列</p></li>
+<li><p><strong>vLLM</strong></p></li>
+<li><p><strong>SGLang</strong></p></li>
+<li><p><strong>pyarrow</strong></p></li>
+<li><p><strong>tensordict</strong></p></li>
+<li><p><strong>nvidia-cudnn-cu12</strong>：适用于 Magetron 后端</p></li>
+</ul>
+<p>如果在运行 verl 时遇到软件包版本问题，请更新过时的软件包。</p>
+</section>
+</section>
+<section id="amd-gpu-rocm">
+<h2>在 AMD GPU 上安装 - ROCM 内核支持<a class="headerlink" href="#amd-gpu-rocm" title="Link to this heading"></a></h2>
+<p>当您在 AMD GPU（MI300）上使用 ROCM 平台时，无法使用先前的快速入门来运行 verl。您应该按照以下步骤构建一个 Docker 并运行它。
+如果在使用 AMD GPU 运行 verl 时遇到任何问题，请随时联系我 - <a class="reference external" href="https://yushengsu-thu.github.io/">Yusheng Su</a>。</p>
+<p>查找用于 AMD ROCm 的 Docker 文件：<a class="reference external" href="https://github.com/volcengine/verl/blob/main/docker/Dockerfile.rocm">docker/Dockerfile.rocm</a></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<dl>
+<dt># 在仓库目录中构建 Docker：</dt><dd><p># docker build -f docker/Dockerfile.rocm -t verl-rocm:03.04.2015 .
+# docker images # 你可以找到你构建的 Docker
+FROM rocm/vllm:rocm6.2_mi300_ubuntu20.04_py3.9_vllm_0.6.4</p>
+<p># 设置工作目录
+# WORKDIR $PWD/app</p>
+<p># 设置环境变量
+ENV PYTORCH_ROCM_ARCH=&quot;gfx90a;gfx942&quot;</p>
+<p># 安装 vllm
+RUN pip uninstall -y vllm &amp;&amp; </p>
+<blockquote>
+<div><p>rm -rf vllm &amp;&amp; git clone -b v0.6.3 <a class="reference external" href="https://github.com/vllm-project/vllm.git">https://github.com/vllm-project/vllm.git</a> &amp;&amp; cd vllm &amp;&amp; MAX_JOBS=$(nproc) python3 setup.py install &amp;&amp; cd .. &amp;&amp; rm -rf vllm</p>
+</div></blockquote>
+<p># 复制整个项目目录
+COPY . .</p>
+<p># 安装依赖
+RUN pip install &quot;tensordict&lt;0.6&quot; --no-deps &amp;&amp; </p>
+<blockquote>
+<div><p>pip install accelerate codetiming datasets dill hydra-core liger-kernel numpy pandas datasets peft &quot;pyarrow&gt;=15.0.0&quot; pylatexenc &quot;ray[data,train,tune,serve]&quot; torchdata transformers wandb orjson pybind11 &amp;&amp; pip install -e . --no-deps</p>
+</div></blockquote>
+</dd>
+</dl>
+<section id="id12">
+<h3>构建镜像<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">docker</span> <span class="pre">build</span> <span class="pre">-t</span> <span class="pre">verl-rocm</span> <span class="pre">.</span>
+<span class="pre">`</span></code></p>
+</section>
+<section id="id13">
+<h3>启动容器<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<p><a href="#id14"><span class="problematic" id="id15">``</span></a><a href="#id16"><span class="problematic" id="id17">`</span></a>bash
+docker run --rm -it </p>
+<blockquote>
+<div><p>--device /dev/dri --device /dev/kfd -p 8265:8265 --group-add video --cap-add SYS_PTRACE --security-opt seccomp=unconfined --privileged -v $HOME/.ssh:/root/.ssh -v $HOME:$HOME --shm-size 128G -w $PWD verl-rocm /bin/bash</p>
+</div></blockquote>
+<p><a href="#id18"><span class="problematic" id="id19">``</span></a><a href="#id20"><span class="problematic" id="id21">`</span></a></p>
+<p>如果您不想使用根模式并希望以用户身份运行，请在上述 Docker 启动脚本中添加 <code class="docutils literal notranslate"><span class="pre">-e</span> <span class="pre">HOST_UID=$(id</span> <span class="pre">-u)</span></code> 和 <code class="docutils literal notranslate"><span class="pre">-e</span> <span class="pre">HOST_GID=$(id</span> <span class="pre">-g)</span></code>。</p>
+<p>目前，verl 与 AMD GPU 一起支持 FSDP 作为训练引擎，vLLM 和 SGLang 作为推理引擎。我们将在未来支持 Megatron。</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="../index.html" class="btn btn-neutral float-left" title="欢迎来到verl的文档！" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="quickstart.html" class="btn btn-neutral float-right" title="快速入门：在GSM8K数据集上进行PPO训练" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; 版权所有 2024 ByteDance Seed Foundation MLSys Team。</p>
+  </div>
+
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
