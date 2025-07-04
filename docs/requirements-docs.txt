@@ -5,9 +5,11 @@ myst_parser
 sphinx-markdown-tables
 
 # theme default rtd
-
-# crate-docs-theme
 sphinx-rtd-theme
+
+# sphinx extensions
+sphinx
+sphinx-autobuild
 
 # pin tokenizers version to avoid env_logger version req
 tokenizers==0.21
