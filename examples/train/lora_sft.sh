@@ -1,6 +1,11 @@
 # 22GB
 # qwen3: https://github.com/modelscope/ms-swift/blob/main/examples/train/think_model/qwen3_demo1.sh
 CUDA_VISIBLE_DEVICES=0 \
+RANK=0 \
+LOCAL_RANK=0 \
+WORLD_SIZE=1 \
+MASTER_ADDR=localhost \
+MASTER_PORT=29500 \
 verl sft \
     --model Qwen/Qwen2.5-7B-Instruct \
     --train_type lora \

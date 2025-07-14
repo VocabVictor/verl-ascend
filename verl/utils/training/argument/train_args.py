@@ -11,7 +11,8 @@ from swift.trainers import TrainerFactory
 from swift.trainers.arguments import TrainArgumentsMixin
 from swift.utils import (add_version_to_work_dir, get_device_count, get_logger, get_pai_tensorboard_dir, is_master,
                          is_mp, is_pai_training_job, is_swanlab_available)
-from .base_args import BaseArguments, to_abspath
+from .base_args import BaseArguments
+from .utils import to_abspath
 from .tuner_args import TunerArguments
 
 logger = get_logger()

@@ -7,7 +7,7 @@ from typing import List, Union
 import swift
 from swift.utils import get_logger, parse_args, seed_everything
 from .argument import BaseArguments
-from ...utils_common import ProcessorMixin
+from swift.llm.utils import ProcessorMixin
 
 logger = get_logger()
 

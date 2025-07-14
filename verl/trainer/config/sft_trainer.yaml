@@ -23,6 +23,10 @@ data:
     path: null
     name: null
   use_shm: False
+  # Support for system prompt, model name and author
+  system_prompt: null
+  model_author: null
+  model_name: null
 model:
   partial_pretrain: ~/models/gemma-1.1-7b-it
   use_shm: False

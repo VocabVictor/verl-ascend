@@ -36,26 +36,114 @@ def sft_main(args: Union[Namespace, None] = None) -> int:
     """
     
     try:
-        # Use VERL's native FSDP SFT trainer
-        from verl.trainer.fsdp_sft_trainer import main as fsdp_sft_main
+        # Use VERL's Swift-style SFT trainer (not the Hydra FSDP version)
+        from verl.trainer.sft_trainer import VerlSft
         
-        # Create hydra config from CLI arguments
-        config_args = _convert_args_to_hydra_format(args) if args else []
-        
-        # Set up sys.argv for hydra
-        original_argv = sys.argv.copy()
-        sys.argv = ['sft_trainer.py'] + config_args
-        
-        try:
-            fsdp_sft_main()
-            return 0
-        finally:
-            # Restore original argv
-            sys.argv = original_argv
+        if args:
+            # Convert CLI args to list format for Swift-style parsing
+            cmd_args = _convert_args_to_swift_format(args)
+            sft_trainer = VerlSft(cmd_args)
+        else:
+            # Use default args
+            sft_trainer = VerlSft()
+            
+        # Run the training
+        sft_trainer.train()
+        return 0
             
     except Exception as e:
         print(f"Error running VERL SFT: {e}")
         return 1
+
+
+def _convert_args_to_swift_format(args: Namespace) -> list:
+    """
+    Convert VERL CLI arguments to Swift-style command line format
+    
+    Args:
+        args: Parsed arguments from VERL CLI
+        
+    Returns:
+        List of arguments in Swift command line format
+    """
+    cmd_args = []
+    
+    # Direct parameter mapping (no conversion needed)
+    if hasattr(args, 'model') and args.model:
+        cmd_args.extend(['--model', args.model])
+    
+    if hasattr(args, 'dataset') and args.dataset:
+        cmd_args.append('--dataset')
+        if isinstance(args.dataset, list):
+            cmd_args.extend(args.dataset)
+        else:
+            cmd_args.append(args.dataset)
+    
+    if hasattr(args, 'train_type') and args.train_type:
+        cmd_args.extend(['--train_type', args.train_type])
+    
+    if hasattr(args, 'torch_dtype') and args.torch_dtype:
+        cmd_args.extend(['--torch_dtype', args.torch_dtype])
+    
+    if hasattr(args, 'num_train_epochs') and args.num_train_epochs:
+        cmd_args.extend(['--num_train_epochs', str(args.num_train_epochs)])
+    
+    if hasattr(args, 'per_device_train_batch_size') and args.per_device_train_batch_size:
+        cmd_args.extend(['--per_device_train_batch_size', str(args.per_device_train_batch_size)])
+    
+    if hasattr(args, 'per_device_eval_batch_size') and args.per_device_eval_batch_size:
+        cmd_args.extend(['--per_device_eval_batch_size', str(args.per_device_eval_batch_size)])
+    
+    if hasattr(args, 'learning_rate') and args.learning_rate:
+        cmd_args.extend(['--learning_rate', str(args.learning_rate)])
+    
+    if hasattr(args, 'lora_rank') and args.lora_rank:
+        cmd_args.extend(['--lora_rank', str(args.lora_rank)])
+    
+    if hasattr(args, 'lora_alpha') and args.lora_alpha:
+        cmd_args.extend(['--lora_alpha', str(args.lora_alpha)])
+    
+    if hasattr(args, 'target_modules') and args.target_modules:
+        cmd_args.extend(['--target_modules', args.target_modules])
+    
+    if hasattr(args, 'gradient_accumulation_steps') and args.gradient_accumulation_steps:
+        cmd_args.extend(['--gradient_accumulation_steps', str(args.gradient_accumulation_steps)])
+    
+    if hasattr(args, 'eval_steps') and args.eval_steps:
+        cmd_args.extend(['--eval_steps', str(args.eval_steps)])
+    
+    if hasattr(args, 'save_steps') and args.save_steps:
+        cmd_args.extend(['--save_steps', str(args.save_steps)])
+    
+    if hasattr(args, 'save_total_limit') and args.save_total_limit:
+        cmd_args.extend(['--save_total_limit', str(args.save_total_limit)])
+    
+    if hasattr(args, 'logging_steps') and args.logging_steps:
+        cmd_args.extend(['--logging_steps', str(args.logging_steps)])
+    
+    if hasattr(args, 'max_length') and args.max_length:
+        cmd_args.extend(['--max_length', str(args.max_length)])
+    
+    if hasattr(args, 'output_dir') and args.output_dir:
+        cmd_args.extend(['--output_dir', args.output_dir])
+    
+    if hasattr(args, 'warmup_ratio') and args.warmup_ratio:
+        cmd_args.extend(['--warmup_ratio', str(args.warmup_ratio)])
+    
+    if hasattr(args, 'dataloader_num_workers') and args.dataloader_num_workers:
+        cmd_args.extend(['--dataloader_num_workers', str(args.dataloader_num_workers)])
+    
+    # These parameters should work directly with Swift-style dataclass
+    if hasattr(args, 'system') and args.system:
+        cmd_args.extend(['--system', args.system])
+    
+    if hasattr(args, 'model_author') and args.model_author:
+        cmd_args.extend(['--model_author', args.model_author])
+    
+    if hasattr(args, 'model_name') and args.model_name:
+        cmd_args.extend(['--model_name', args.model_name])
+    
+    return cmd_args
 
 
 def _convert_args_to_hydra_format(args: Namespace) -> list:

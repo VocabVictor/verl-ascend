@@ -15,5 +15,6 @@
 from .core import config, tokenizer
 from .core.config import omega_conf_to_dataclass
 from .core.tokenizer import hf_processor, hf_tokenizer
+from .core.utils import Processor, ProcessorMixin, Messages, Tool, History, Message, messages_to_history
 
-__all__ = tokenizer.__all__ + config.__all__ + ["hf_processor", "hf_tokenizer", "omega_conf_to_dataclass"]
+__all__ = tokenizer.__all__ + config.__all__ + ["hf_processor", "hf_tokenizer", "omega_conf_to_dataclass", "Processor", "ProcessorMixin", "Messages", "Tool", "History", "Message", "messages_to_history"]

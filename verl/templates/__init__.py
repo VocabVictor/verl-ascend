@@ -15,3 +15,5 @@
 """
 VERL Templates - Templates
 """
+
+from .base import MaxLengthError

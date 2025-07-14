@@ -17,7 +17,7 @@ except ImportError as e:
 
 from ..utils.training.argument import TrainArguments
 from ..utils.training.base import SwiftPipeline
-from ..datasets import EncodePreprocessor, IterablePackingDataset, LazyLLMDataset, PackingDataset, load_dataset
+from ..datasets import load_dataset, PackingDataset, IterablePackingDataset
 from ..utils.training.tuner_mixin import TunerMixin
 
 logger = get_logger()

@@ -17,7 +17,7 @@ from torch.utils.data import Dataset, IterableDataset
 from tqdm import tqdm
 
 from swift.utils import get_logger, is_master, safe_ddp_context
-from ..template import MaxLengthError
+from ..templates import MaxLengthError
 from .preprocessor import RowPreprocessor
 
 logger = get_logger()
