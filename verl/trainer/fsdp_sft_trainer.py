@@ -212,13 +212,27 @@ class FSDPSFTTrainer:
         )
 
         with init_context():
-            self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
-                local_model_path,
-                config=config,
-                torch_dtype=torch_dtype,
-                attn_implementation="flash_attention_2",
-                trust_remote_code=trust_remote_code,
-            )
+            # Try to load multimodal model first, fallback to CausalLM
+            try:
+                from transformers import AutoModel
+                self.model: PreTrainedModel = AutoModel.from_pretrained(
+                    local_model_path,
+                    config=config,
+                    torch_dtype=torch_dtype,
+                    attn_implementation="flash_attention_2",
+                    trust_remote_code=trust_remote_code,
+                )
+                logger.info("Successfully loaded multimodal model with AutoModel")
+            except Exception as e:
+                logger.info(f"Failed to load with AutoModel: {e}")
+                logger.info("Falling back to AutoModelForCausalLM")
+                self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
+                    local_model_path,
+                    config=config,
+                    torch_dtype=torch_dtype,
+                    attn_implementation="flash_attention_2",
+                    trust_remote_code=trust_remote_code,
+                )
 
             if self.use_remove_padding or self.config.ulysses_sequence_parallel_size > 1:
                 from verl.models.transformers.monkey_patch import apply_monkey_patch
