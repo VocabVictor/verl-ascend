@@ -47,6 +47,11 @@ class SFTDataset(Dataset):
         max_length = config.get("max_length", 1024)
         truncation = config.get("truncation", "error")
         use_shm = config.get("use_shm", False)
+        
+        # Support for system prompt, model name and author
+        self.system_prompt = config.get("system_prompt", None)
+        self.model_name = config.get("model_name", None)
+        self.model_author = config.get("model_author", None)
 
         assert truncation in ["error", "left", "right"]
         self.truncation = truncation
@@ -121,9 +126,25 @@ class SFTDataset(Dataset):
 
         prompt = self.prompts[item]
         response = self.responses[item]
+        
+        # Handle self-cognition dataset replacements
+        if self.model_name and 'swift' in str(prompt).lower():
+            if isinstance(self.model_name, str):
+                prompt = str(prompt).replace('swift', self.model_name)
+                response = str(response).replace('swift', self.model_name)
+        
+        if self.model_author and 'swift' in str(response).lower():
+            if isinstance(self.model_author, str):
+                response = str(response).replace('swift', self.model_author)
 
-        # apply chat template
-        prompt_chat = [{"role": "user", "content": prompt}]
+        # apply chat template with system prompt if provided
+        if self.system_prompt:
+            prompt_chat = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": prompt}
+            ]
+        else:
+            prompt_chat = [{"role": "user", "content": prompt}]
 
         # string
         prompt_chat_str = tokenizer.apply_chat_template(prompt_chat, add_generation_prompt=True, tokenize=False)

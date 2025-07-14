@@ -81,8 +81,8 @@ def _add_sft_arguments(parser: argparse.ArgumentParser) -> None:
     # Core training arguments
     parser.add_argument('--model', type=str, required=True,
                         help='Model path or identifier')
-    parser.add_argument('--dataset', type=str,
-                        help='Dataset name or path')
+    parser.add_argument('--dataset', type=str, nargs='+',
+                        help='Dataset name or path (supports multiple datasets)')
     parser.add_argument('--train_type', type=str, default='lora',
                         choices=['lora', 'full', 'qlora'],
                         help='Training type')
@@ -133,6 +133,16 @@ def _add_sft_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Warmup ratio')
     parser.add_argument('--dataloader_num_workers', type=int, default=4,
                         help='Dataloader num workers')
+    
+    # Template arguments
+    parser.add_argument('--system', type=str,
+                        help='System prompt to override default')
+    
+    # Model metadata arguments
+    parser.add_argument('--model_author', type=str,
+                        help='Model author name')
+    parser.add_argument('--model_name', type=str,
+                        help='Model name')
 
 
 def _add_rl_arguments(parser: argparse.ArgumentParser) -> None:

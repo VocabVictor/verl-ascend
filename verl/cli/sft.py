@@ -75,8 +75,15 @@ def _convert_args_to_hydra_format(args: Namespace) -> list:
         hydra_args.append(f'model.partial_pretrain={args.model}')
     
     if hasattr(args, 'dataset') and args.dataset:
-        hydra_args.append(f'data.train_files=[{args.dataset}]')
-        hydra_args.append(f'data.val_files=[{args.dataset}]')
+        # Handle multiple datasets - use proper Hydra list syntax
+        if isinstance(args.dataset, list):
+            # Quote each dataset and join with commas for Hydra list syntax
+            datasets_quoted = [f'"{dataset}"' for dataset in args.dataset]
+            datasets_str = ','.join(datasets_quoted)
+        else:
+            datasets_str = f'"{args.dataset}"'
+        hydra_args.append(f'data.train_files=[{datasets_str}]')
+        hydra_args.append(f'data.val_files=[{datasets_str}]')
         # Set correct column mapping for geo3k dataset
         hydra_args.append('data.prompt_key=problem')
         hydra_args.append('data.response_key=answer')
@@ -112,6 +119,18 @@ def _convert_args_to_hydra_format(args: Namespace) -> list:
     
     if hasattr(args, 'logging_steps') and args.logging_steps:
         hydra_args.append(f'trainer.test_freq={args.logging_steps}')
+    
+    # Handle system parameter for template override
+    if hasattr(args, 'system') and args.system:
+        # Store system prompt in a way that can be accessed by the trainer
+        hydra_args.append(f'data.system_prompt="{args.system}"')
+    
+    # Handle model metadata for self-cognition datasets
+    if hasattr(args, 'model_author') and args.model_author:
+        hydra_args.append(f'data.model_author="{args.model_author}"')
+    
+    if hasattr(args, 'model_name') and args.model_name:
+        hydra_args.append(f'data.model_name="{args.model_name}"')
     
     # Disable wandb logging to avoid API key requirement
     hydra_args.append('trainer.logger=[console]')
