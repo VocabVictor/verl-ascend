@@ -18,7 +18,7 @@ from types import FunctionType
 from typing import Dict, List, Tuple
 
 from verl.protocol import DataProtoFuture, _padding_size_key
-from verl.utils.py_functional import DynamicEnum
+from verl.utils.core.py_functional import DynamicEnum
 
 # here we add a magic number of avoid user-defined function already have this attribute
 MAGIC_ATTR = "attrs_3141562937"

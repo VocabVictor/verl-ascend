@@ -33,7 +33,7 @@ from transformers import (
 )
 
 from verl.models.registry import ModelRegistry
-from verl.utils.import_utils import is_trl_available
+from verl.utils.core.import_utils import is_trl_available
 
 
 class LambdaLayer(nn.Module):

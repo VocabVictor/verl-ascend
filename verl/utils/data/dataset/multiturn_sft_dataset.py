@@ -27,7 +27,7 @@ from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizer
 
 from verl.utils import hf_tokenizer
-from verl.utils.fs import copy_local_path_from_hdfs
+from verl.utils.system.fs import copy_local_path_from_hdfs
 
 
 def convert_nested_value_to_list_recursive(data_item):

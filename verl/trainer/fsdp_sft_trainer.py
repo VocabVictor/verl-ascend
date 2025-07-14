@@ -40,14 +40,14 @@ from torch.utils.data import DataLoader, Dataset, DistributedSampler
 from tqdm import tqdm
 from transformers import AutoConfig, AutoModelForCausalLM, PreTrainedModel
 
-import verl.utils.hdfs_io as hdfs_io
-from verl.utils.dataset import SFTDataset
-from verl.utils.dataset.multiturn_sft_dataset import MultiTurnSFTDataset
-from verl.utils.debug import log_gpu_memory_usage
-from verl.utils.device import get_device_id, get_device_name, is_cuda_available, is_npu_available
-from verl.utils.distributed import destroy_global_process_group, initialize_global_process_group
-from verl.utils.fs import copy_to_local
-from verl.utils.fsdp_utils import (
+import verl.utils.core.hdfs_io as hdfs_io
+from verl.utils.data.dataset import SFTDataset
+from verl.utils.data.dataset.multiturn_sft_dataset import MultiTurnSFTDataset
+from verl.utils.system.debug import log_gpu_memory_usage
+from verl.utils.distributed.device import get_device_id, get_device_name, is_cuda_available, is_npu_available
+from verl.utils.distributed.distributed import destroy_global_process_group, initialize_global_process_group
+from verl.utils.system.fs import copy_to_local
+from verl.utils.system.fsdp_utils import (
     CPUOffloadPolicy,
     MixedPrecisionPolicy,
     apply_fsdp2,
@@ -57,21 +57,34 @@ from verl.utils.fsdp_utils import (
     get_init_weight_context_manager,
     init_fn,
 )
-from verl.utils.py_functional import convert_to_regular_types
-from verl.utils.torch_dtypes import PrecisionType
-from verl.utils.torch_functional import get_cosine_schedule_with_warmup, get_wsd_schedule_with_warmup
-from verl.utils.tracking import Tracking
-from verl.utils.ulysses import (
+from verl.utils.core.py_functional import convert_to_regular_types
+from verl.utils.core.torch_dtypes import PrecisionType
+from verl.utils.core.torch_functional import get_cosine_schedule_with_warmup, get_wsd_schedule_with_warmup
+from verl.utils.system.tracking import Tracking
+from verl.utils.system.ulysses import (
     gather_outpus_and_unpad,
     get_ulysses_sequence_parallel_world_size,
     ulysses_pad_and_slice_inputs,
 )
 from verl.workers.sharding_manager.fsdp_ulysses import FSDPUlyssesShardingManager
 
-if is_cuda_available:
-    from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input
-elif is_npu_available:
-    from transformers.integrations.npu_flash_attention import index_first_axis, pad_input, rearrange, unpad_input
+try:
+    if is_cuda_available:
+        from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input
+    elif is_npu_available:
+        from transformers.integrations.npu_flash_attention import index_first_axis, pad_input, rearrange, unpad_input
+    else:
+        # Fallback implementations
+        index_first_axis = None
+        pad_input = None
+        rearrange = None
+        unpad_input = None
+except ImportError:
+    # Fallback when flash_attn is not available
+    index_first_axis = None
+    pad_input = None 
+    rearrange = None
+    unpad_input = None
 
 logger = logging.getLogger(__file__)
 logger.setLevel(os.getenv("VERL_SFT_LOGGING_LEVEL", "WARN"))
@@ -212,27 +225,39 @@ class FSDPSFTTrainer:
         )
 
         with init_context():
-            # Try to load multimodal model first, fallback to CausalLM
+            # For QWen2.5VL, we need to use the specific ForCausalLM class
             try:
-                from transformers import AutoModel
-                self.model: PreTrainedModel = AutoModel.from_pretrained(
-                    local_model_path,
-                    config=config,
-                    torch_dtype=torch_dtype,
-                    attn_implementation="flash_attention_2",
-                    trust_remote_code=trust_remote_code,
-                )
-                logger.info("Successfully loaded multimodal model with AutoModel")
+                if "qwen2.5-vl" in local_model_path.lower() or "qwen2_5_vl" in str(config.__class__.__name__).lower():
+                    from transformers.models.qwen2_5_vl.modeling_qwen2_5_vl import Qwen2_5_VLForConditionalGeneration
+                    self.model: PreTrainedModel = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+                        local_model_path,
+                        config=config,
+                        torch_dtype=torch_dtype,
+                        trust_remote_code=trust_remote_code,
+                    )
+                    logger.info("Successfully loaded QWen2.5VL with Qwen2_5_VLForConditionalGeneration")
+                else:
+                    raise ValueError("Not a QWen2.5VL model")
             except Exception as e:
-                logger.info(f"Failed to load with AutoModel: {e}")
-                logger.info("Falling back to AutoModelForCausalLM")
-                self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
-                    local_model_path,
-                    config=config,
-                    torch_dtype=torch_dtype,
-                    attn_implementation="flash_attention_2",
-                    trust_remote_code=trust_remote_code,
-                )
+                logger.info(f"Failed to load with Qwen2_5_VLForCausalLM: {e}")
+                try:
+                    self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
+                        local_model_path,
+                        config=config,
+                        torch_dtype=torch_dtype,
+                        trust_remote_code=trust_remote_code,
+                    )
+                    logger.info("Successfully loaded with AutoModelForCausalLM")
+                except Exception as e2:
+                    logger.info(f"Failed to load with AutoModelForCausalLM: {e2}")
+                    logger.info("Falling back to AutoModel")
+                    from transformers import AutoModel
+                    self.model: PreTrainedModel = AutoModel.from_pretrained(
+                        local_model_path,
+                        config=config,
+                        torch_dtype=torch_dtype,
+                        trust_remote_code=trust_remote_code,
+                    )
 
             if self.use_remove_padding or self.config.ulysses_sequence_parallel_size > 1:
                 from verl.models.transformers.monkey_patch import apply_monkey_patch
@@ -255,6 +280,13 @@ class FSDPSFTTrainer:
                     "target_modules": convert_to_regular_types(self.config.model.target_modules),
                     "bias": "none",
                 }
+                
+                # Add missing methods for multimodal models
+                if not hasattr(self.model, 'prepare_inputs_for_generation'):
+                    def prepare_inputs_for_generation(*args, **kwargs):
+                        return kwargs
+                    self.model.prepare_inputs_for_generation = prepare_inputs_for_generation
+                
                 self.model = get_peft_model(self.model, LoraConfig(**lora_config))
 
         if self.config.model.enable_gradient_checkpointing:
@@ -366,7 +398,11 @@ class FSDPSFTTrainer:
                 output = self.fsdp_model(
                     input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids, use_cache=False
                 )
-                logits = output.logits
+                # Handle different model output types
+                if hasattr(output, 'logits'):
+                    logits = output.logits
+                else:
+                    raise AttributeError(f"Model output {type(output)} does not have logits. Available attributes: {list(output.keys()) if hasattr(output, 'keys') else dir(output)}")
 
                 shift_logits = logits[..., :-1, :].contiguous()
                 shift_labels = labels.contiguous()

@@ -15,7 +15,7 @@
 
 """
 VERL SFT Command - Supervised Fine-Tuning with multi-modal support
-Integrated with Swift's advanced SFT capabilities for multimodal training.
+Uses VERL's native FSDP SFT trainer for multimodal training.
 """
 
 import os
@@ -36,78 +36,87 @@ def sft_main(args: Union[Namespace, None] = None) -> int:
     """
     
     try:
-        # 直接调用Swift原生SFT命令，保持其强大的多模态能力
-        import subprocess
+        # Use VERL's native FSDP SFT trainer
+        from verl.trainer.fsdp_sft_trainer import main as fsdp_sft_main
         
-        # 设置环境变量解决MKL问题
-        env = os.environ.copy()
-        env['MKL_SERVICE_FORCE_INTEL'] = '1'
-        env['MKL_THREADING_LAYER'] = 'GNU'
+        # Create hydra config from CLI arguments
+        config_args = _convert_args_to_hydra_format(args) if args else []
         
-        # 构建Swift SFT命令
-        swift_cmd = ['swift', 'sft']
+        # Set up sys.argv for hydra
+        original_argv = sys.argv.copy()
+        sys.argv = ['sft_trainer.py'] + config_args
         
-        if args is not None:
-            # 将VERL参数转换为Swift参数
-            swift_args = _convert_args_to_swift_format(args)
-            swift_cmd.extend(swift_args)
-        else:
-            # 使用原始命令行参数
-            swift_cmd.extend(sys.argv[2:])  # 跳过 'verl sft'
-            
-        # 执行Swift SFT命令
-        result = subprocess.run(swift_cmd, cwd='/home/migu/.code/swift', env=env)
-        return result.returncode
+        try:
+            fsdp_sft_main()
+            return 0
+        finally:
+            # Restore original argv
+            sys.argv = original_argv
             
     except Exception as e:
         print(f"Error running VERL SFT: {e}")
         return 1
 
 
-def _convert_args_to_swift_format(args: Namespace) -> list:
+def _convert_args_to_hydra_format(args: Namespace) -> list:
     """
-    Convert VERL CLI arguments to Swift SFT format
+    Convert VERL CLI arguments to Hydra config format for FSDP SFT trainer
     
     Args:
         args: Parsed arguments from VERL CLI
         
     Returns:
-        List of arguments in Swift format
+        List of arguments in Hydra format
     """
-    swift_args = []
+    hydra_args = []
     
-    # Map VERL args to Swift args
-    arg_mapping = {
-        'model': '--model',
-        'dataset': '--dataset', 
-        'train_type': '--train_type',
-        'lora_rank': '--lora_rank',
-        'lora_alpha': '--lora_alpha',
-        'target_modules': '--target_modules',
-        'num_train_epochs': '--num_train_epochs',
-        'per_device_train_batch_size': '--per_device_train_batch_size',
-        'per_device_eval_batch_size': '--per_device_eval_batch_size',
-        'learning_rate': '--learning_rate',
-        'gradient_accumulation_steps': '--gradient_accumulation_steps',
-        'eval_steps': '--eval_steps',
-        'save_steps': '--save_steps',
-        'save_total_limit': '--save_total_limit',
-        'logging_steps': '--logging_steps',
-        'torch_dtype': '--torch_dtype',
-        'max_length': '--max_length',
-        'output_dir': '--output_dir',
-        'warmup_ratio': '--warmup_ratio',
-        'dataloader_num_workers': '--dataloader_num_workers',
-    }
+    # Map VERL args to Hydra config overrides
+    if hasattr(args, 'model') and args.model:
+        hydra_args.append(f'model.partial_pretrain={args.model}')
     
-    # Convert arguments
-    for verl_arg, swift_arg in arg_mapping.items():
-        if hasattr(args, verl_arg):
-            value = getattr(args, verl_arg)
-            if value is not None:
-                swift_args.extend([swift_arg, str(value)])
+    if hasattr(args, 'dataset') and args.dataset:
+        hydra_args.append(f'data.train_files=[{args.dataset}]')
+        hydra_args.append(f'data.val_files=[{args.dataset}]')
+        # Set correct column mapping for geo3k dataset
+        hydra_args.append('data.prompt_key=problem')
+        hydra_args.append('data.response_key=answer')
     
-    return swift_args
+    if hasattr(args, 'train_type') and args.train_type == 'lora':
+        if hasattr(args, 'lora_rank') and args.lora_rank:
+            hydra_args.append(f'model.lora_rank={args.lora_rank}')
+        if hasattr(args, 'lora_alpha') and args.lora_alpha:
+            hydra_args.append(f'model.lora_alpha={args.lora_alpha}')
+        if hasattr(args, 'target_modules') and args.target_modules:
+            hydra_args.append(f'model.target_modules=[{args.target_modules}]')
+    
+    if hasattr(args, 'num_train_epochs') and args.num_train_epochs:
+        hydra_args.append(f'trainer.total_epochs={args.num_train_epochs}')
+    
+    if hasattr(args, 'per_device_train_batch_size') and args.per_device_train_batch_size:
+        hydra_args.append(f'data.micro_batch_size_per_gpu={args.per_device_train_batch_size}')
+    
+    if hasattr(args, 'learning_rate') and args.learning_rate:
+        hydra_args.append(f'optim.lr={args.learning_rate}')
+    
+    if hasattr(args, 'max_length') and args.max_length:
+        hydra_args.append(f'data.max_length={args.max_length}')
+    
+    if hasattr(args, 'output_dir') and args.output_dir:
+        hydra_args.append(f'trainer.default_local_dir={args.output_dir}')
+    
+    if hasattr(args, 'warmup_ratio') and args.warmup_ratio:
+        hydra_args.append(f'optim.warmup_steps_ratio={args.warmup_ratio}')
+    
+    if hasattr(args, 'save_steps') and args.save_steps:
+        hydra_args.append(f'trainer.save_freq={args.save_steps}')
+    
+    if hasattr(args, 'logging_steps') and args.logging_steps:
+        hydra_args.append(f'trainer.test_freq={args.logging_steps}')
+    
+    # Disable wandb logging to avoid API key requirement
+    hydra_args.append('trainer.logger=[console]')
+    
+    return hydra_args
 
 
 if __name__ == '__main__':

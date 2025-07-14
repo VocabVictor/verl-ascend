@@ -28,8 +28,8 @@ from omegaconf import DictConfig, ListConfig
 from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizer, ProcessorMixin
 
-import verl.utils.torch_functional as verl_F
-from verl.utils.model import compute_position_id_with_mask
+import verl.utils.core.torch_functional as verl_F
+from verl.utils.model.model import compute_position_id_with_mask
 
 logger = logging.getLogger(__name__)
 

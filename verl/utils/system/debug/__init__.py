@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ..import_utils import is_nvtx_available
+from ...core.import_utils import is_nvtx_available
 from .performance import GPUMemoryLogger, log_gpu_memory_usage, log_print, simple_timer
 from .profile import DistProfilerExtension, ProfilerConfig
 

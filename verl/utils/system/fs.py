@@ -24,7 +24,7 @@ import tempfile
 try:
     from hdfs_io import copy, exists, makedirs  # for internal use only
 except ImportError:
-    from .hdfs_io import copy, exists, makedirs
+    from ..core.hdfs_io import copy, exists, makedirs
 
 __all__ = ["copy", "exists", "makedirs"]
 
