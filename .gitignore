@@ -194,4 +194,7 @@ cython_debug/
 .cursorindexingignore
 
 # Training outputs
+outputs/output/
+test_output/
+native_test_output/
 outputs/
