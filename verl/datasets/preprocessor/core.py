@@ -11,8 +11,9 @@ from datasets import Image
 from datasets import IterableDataset as HfIterableDataset
 from datasets import Sequence, Value
 
-from swift.llm import history_to_messages
-from swift.utils import get_logger, is_dist, is_master, safe_ddp_context
+from verl.utils.core.utils import history_to_messages
+from verl.utils.core.logger import get_logger
+from verl.utils.core.env import is_dist, is_master, safe_ddp_context
 
 DATASET_TYPE = Union[HfDataset, HfIterableDataset]
 

@@ -12,7 +12,31 @@ from modelscope.hub.utils.utils import get_cache_dir
 from transformers import FeatureExtractionMixin, GenerationConfig, PreTrainedModel, PreTrainedTokenizerBase
 from transformers import ProcessorMixin as HfProcessorMixin
 
-from swift.utils import deep_getattr, get_logger
+# Local implementations to avoid swift dependency
+def deep_getattr(obj, attr: str, default=None):
+    attrs = attr.split('.')
+    for a in attrs:
+        if obj is None:
+            break
+        if isinstance(obj, dict):
+            obj = obj.get(a, default)
+        else:
+            obj = getattr(obj, a, default)
+    return obj
+
+from verl.utils.core.logger import get_logger
+
+def check_json_format(obj_list):
+    """Check and format JSON objects for serialization"""
+    formatted_list = []
+    for obj in obj_list:
+        if hasattr(obj, 'tolist'):  # Handle numpy arrays
+            formatted_list.append(obj.tolist())
+        elif isinstance(obj, torch.Tensor):  # Handle torch tensors
+            formatted_list.append(obj.detach().cpu().tolist())
+        else:
+            formatted_list.append(obj)
+    return formatted_list
 
 try:
     from transformers import BaseImageProcessor

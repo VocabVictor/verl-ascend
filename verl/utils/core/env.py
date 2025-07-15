@@ -72,7 +72,9 @@ def is_mp() -> bool:
     if use_torchacc():
         return False
 
-    from swift.utils import get_device_count
+    import torch
+    def get_device_count():
+        return torch.cuda.device_count() if torch.cuda.is_available() else 0
     n_gpu = get_device_count()
     local_world_size = get_dist_setting()[3]
     assert n_gpu % local_world_size == 0, f'n_gpu: {n_gpu}, local_world_size: {local_world_size}'
@@ -98,8 +100,19 @@ def is_dist_ta() -> bool:
             # Initialize in advance
             dist.init_process_group(backend=ta.dist.BACKEND_NAME)
         return True
-    else:
-        return False
+    return False
+
+
+def safe_ddp_context():
+    """Safe DDP context manager"""
+    from contextlib import nullcontext
+    return nullcontext()
+
+
+def get_seed():
+    """Get random seed"""
+    import random
+    return random.randint(0, 2**31 - 1)
 
 
 def is_pai_training_job() -> bool:

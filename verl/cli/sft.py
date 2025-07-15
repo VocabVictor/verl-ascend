@@ -36,20 +36,28 @@ def sft_main(args: Union[Namespace, None] = None) -> int:
     """
     
     try:
-        # Use VERL's Swift-style SFT trainer (not the Hydra FSDP version)
-        from verl.trainer.sft_trainer import VerlSft
+        # Use VERL's native FSDP SFT trainer directly
+        from hydra import compose, initialize_config_dir
+        from omegaconf import OmegaConf
+        import subprocess
+        
+        # Path to VERL FSDP SFT trainer
+        sft_script = os.path.join(os.path.dirname(__file__), '..', 'trainer', 'fsdp_sft_trainer.py')
         
         if args:
-            # Convert CLI args to list format for Swift-style parsing
-            cmd_args = _convert_args_to_swift_format(args)
-            sft_trainer = VerlSft(cmd_args)
-        else:
-            # Use default args
-            sft_trainer = VerlSft()
+            # Convert args to Hydra format
+            hydra_args = _convert_args_to_hydra_format(args)
             
-        # Run the training
-        sft_trainer.train()
-        return 0
+            # Construct command
+            cmd = [sys.executable, sft_script] + hydra_args
+            
+            # Run the FSDP SFT trainer
+            result = subprocess.run(cmd, env=os.environ.copy())
+            return result.returncode
+        else:
+            # Run with default args
+            result = subprocess.run([sys.executable, sft_script], env=os.environ.copy())
+            return result.returncode
             
     except Exception as e:
         print(f"Error running VERL SFT: {e}")
@@ -172,9 +180,17 @@ def _convert_args_to_hydra_format(args: Namespace) -> list:
             datasets_str = f'"{args.dataset}"'
         hydra_args.append(f'data.train_files=[{datasets_str}]')
         hydra_args.append(f'data.val_files=[{datasets_str}]')
-        # Set correct column mapping for geo3k dataset
-        hydra_args.append('data.prompt_key=problem')
-        hydra_args.append('data.response_key=answer')
+    
+    # Handle dataset field mapping
+    if hasattr(args, 'prompt_key') and args.prompt_key:
+        hydra_args.append(f'data.prompt_key={args.prompt_key}')
+    else:
+        hydra_args.append('data.prompt_key=problem')  # default
+        
+    if hasattr(args, 'response_key') and args.response_key:
+        hydra_args.append(f'data.response_key={args.response_key}')
+    else:
+        hydra_args.append('data.response_key=answer')  # default
     
     if hasattr(args, 'train_type') and args.train_type == 'lora':
         if hasattr(args, 'lora_rank') and args.lora_rank:

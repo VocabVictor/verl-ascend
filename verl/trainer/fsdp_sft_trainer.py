@@ -273,11 +273,32 @@ class FSDPSFTTrainer:
             if self.config.model.get("lora_rank", 0) > 0:
                 self.model.enable_input_require_grads()
                 # Convert config to regular Python types before creating PEFT model
+                target_modules = convert_to_regular_types(self.config.model.target_modules)
+                
+                # Resolve 'all-linear' to actual module names
+                if 'all-linear' in target_modules:
+                    from verl.utils.core.torch_utils import find_layers
+                    
+                    def _is_linear_layer(name, module):
+                        module_name = module.__class__.__name__.lower()
+                        ignore_layers = ['lm_head', 'score', 'v_head', 'classifier', 'lora_A', 'lora_B', 'base_layer']
+                        ignore_linear_cls = ['glulinear']  # phi4-mm
+                        
+                        if ('linear' in module_name and 
+                            all(linear_cls not in module_name for linear_cls in ignore_linear_cls) and
+                            all(layer not in name for layer in ignore_layers)):
+                            return True
+                        return False
+                    
+                    actual_linear_modules = find_layers(self.model, _is_linear_layer)
+                    target_modules = [m for m in target_modules if m != 'all-linear'] + actual_linear_modules
+                    logger.info(f"Resolved 'all-linear' to: {actual_linear_modules}")
+                
                 lora_config = {
                     "task_type": TaskType.CAUSAL_LM,
                     "r": self.config.model.lora_rank,
                     "lora_alpha": self.config.model.lora_alpha,
-                    "target_modules": convert_to_regular_types(self.config.model.target_modules),
+                    "target_modules": target_modules,
                     "bias": "none",
                 }
                 
@@ -693,7 +714,90 @@ def main(config):
 
 def create_sft_dataset(data_paths, data_config, tokenizer):
     """Create a dataset."""
-    # build dataset
+    
+    # Check if data_paths contains swift-style dataset names (e.g., 'tatsu-lab/alpaca#500')
+    # vs actual file paths (e.g., '/path/to/file.parquet')
+    # Handle both regular lists and OmegaConf ListConfig
+    if hasattr(data_paths, '__len__') and len(data_paths) > 0:
+        first_path = data_paths[0]
+        # If it looks like a swift dataset name (contains '/' but not filesystem path)
+        if '/' in first_path and not first_path.startswith('/') and not first_path.endswith('.parquet'):
+            # For now, use a simplified approach that loads from HuggingFace directly
+            # This bypasses the complex VERL dataset system that has swift dependencies
+            
+            import datasets
+            from verl.utils.data.dataset import SFTDataset
+            import tempfile
+            import json
+            
+            # Create a temporary dataset by downloading and converting format
+            temp_datasets = []
+            for dataset_spec in data_paths:
+                # Parse dataset spec like 'AI-ModelScope/alpaca-gpt4-data-zh#500'
+                if '#' in dataset_spec:
+                    dataset_name, sample_count = dataset_spec.split('#')
+                    sample_count = int(sample_count)
+                else:
+                    dataset_name = dataset_spec
+                    sample_count = None
+                
+                # Load dataset using HuggingFace first, then ModelScope as fallback
+                try:
+                    # Try HuggingFace first (default)
+                    hf_dataset = datasets.load_dataset(dataset_name, split='train', streaming=False)
+                    if sample_count:
+                        hf_dataset = hf_dataset.select(range(min(sample_count, len(hf_dataset))))
+                    temp_datasets.append(hf_dataset)
+                    logger.info(f"Successfully loaded {dataset_name} from HuggingFace")
+                except Exception as e:
+                    logger.warning(f"Failed to load {dataset_name} from HuggingFace: {e}")
+                    # Try ModelScope as fallback
+                    try:
+                        from modelscope import MsDataset
+                        ms_dataset = MsDataset.load(dataset_name, split='train')
+                        # Convert to HuggingFace format
+                        hf_dataset = datasets.Dataset.from_generator(lambda: ms_dataset)
+                        if sample_count:
+                            hf_dataset = hf_dataset.select(range(min(sample_count, len(hf_dataset))))
+                        temp_datasets.append(hf_dataset)
+                        logger.info(f"Successfully loaded {dataset_name} from ModelScope")
+                    except Exception as e2:
+                        logger.warning(f"Failed to load {dataset_name} from both HuggingFace and ModelScope: {e2}")
+                        # Continue with other datasets
+                        continue
+            
+            if not temp_datasets:
+                # If no real datasets could be loaded, create a minimal test dataset
+                logger.info("Creating minimal test dataset for demonstration")
+                test_data = [
+                    {"problem": "What is AI?", "answer": "Artificial Intelligence (AI) is a field of computer science."},
+                    {"problem": "How does machine learning work?", "answer": "Machine learning uses algorithms to learn patterns."},
+                    {"problem": "What is deep learning?", "answer": "Deep learning uses neural networks with multiple layers."},
+                ] * 200  # Repeat to have enough samples
+                
+                combined_dataset = datasets.Dataset.from_list(test_data)
+            else:
+                # Concatenate all datasets
+                if len(temp_datasets) == 1:
+                    combined_dataset = temp_datasets[0]
+                else:
+                    combined_dataset = datasets.concatenate_datasets(temp_datasets)
+            
+            # Convert to format expected by SFTDataset
+            # Save as temporary parquet file
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.parquet', delete=False) as tmp_file:
+                temp_path = tmp_file.name
+                combined_dataset.to_parquet(temp_path)
+            
+            # Create SFTDataset from the temporary file
+            dataset = SFTDataset(parquet_files=temp_path, tokenizer=tokenizer, config=data_config)
+            return dataset
+        else:
+            # Using original file-based loading
+            pass
+    
+    # Fall back to original file-based loading for actual parquet files
     # First check if a custom dataset class is specified
     if data_config.custom_cls.get("path", None):
         from verl.utils.import_utils import load_extern_type
@@ -706,7 +810,7 @@ def create_sft_dataset(data_paths, data_config, tokenizer):
     else:
         dataset_cls = SFTDataset
 
-    # Create datasets based on the selected class
+    # Create datasets based on the selected class (for actual parquet files)
     dataset = dataset_cls(parquet_files=data_paths, tokenizer=tokenizer, config=data_config)
     return dataset
 

@@ -21,7 +21,12 @@ from transformers import StoppingCriteriaList
 from transformers.integrations import is_deepspeed_zero3_enabled
 from transformers.utils import strtobool
 
-from swift.utils import get_dist_setting, get_env_args, get_logger, use_torchacc
+from verl.utils.core.env import get_dist_setting, use_torchacc
+from verl.utils.core.logger import get_logger
+
+def get_env_args():
+    """Get environment arguments - simplified implementation"""
+    return []
 from ..utils import Processor, ProcessorMixin
 from .template_inputs import InferRequest, StdTemplateInputs, TemplateInputs
 from .utils import Context, ContextType, StopWordsCriteria, fetch_one, findall, split_str_parts_by

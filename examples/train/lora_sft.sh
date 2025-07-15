@@ -1,17 +1,10 @@
 # 22GB
 # qwen3: https://github.com/modelscope/ms-swift/blob/main/examples/train/think_model/qwen3_demo1.sh
-CUDA_VISIBLE_DEVICES=0 \
-RANK=0 \
-LOCAL_RANK=0 \
-WORLD_SIZE=1 \
-MASTER_ADDR=localhost \
-MASTER_PORT=29500 \
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
 verl sft \
-    --model Qwen/Qwen2.5-7B-Instruct \
+    --model Qwen/Qwen2.5-3B-Instruct \
     --train_type lora \
-    --dataset 'AI-ModelScope/alpaca-gpt4-data-zh#500' \
-              'AI-ModelScope/alpaca-gpt4-data-en#500' \
-              'swift/self-cognition#500' \
+    --dataset 'tatsu-lab/alpaca#50' \
     --torch_dtype bfloat16 \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
@@ -31,4 +24,6 @@ verl sft \
     --warmup_ratio 0.05 \
     --dataloader_num_workers 4 \
     --model_author swift \
-    --model_name swift-robot
+    --model_name swift-robot \
+    --prompt_key instruction \
+    --response_key output

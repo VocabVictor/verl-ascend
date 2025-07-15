@@ -16,8 +16,48 @@ from datasets import load_dataset as hf_load_dataset
 from modelscope.hub.api import ModelScopeConfig
 from modelscope.utils.config_ds import MS_CACHE_HOME
 
-from swift.hub import get_hub
-from swift.utils import download_ms_file, get_logger, get_seed, safe_ddp_context, use_hf_hub
+from verl.utils.core.env import get_seed, safe_ddp_context, use_hf_hub
+from verl.utils.core.io_utils import download_ms_file
+from verl.utils.core.logger import get_logger
+
+# Hub implementation for dataset loading
+class VerlHub:
+    def __init__(self, use_hf=False):
+        self.use_hf = use_hf
+    
+    def patch_hub(self):
+        from contextlib import nullcontext
+        return nullcontext()
+    
+    def load_dataset(self, dataset_id, subset=None, split='train', streaming=False, 
+                    revision=None, download_mode='reuse_dataset_if_exists', 
+                    hub_token=None, num_proc=None):
+        """Load dataset using appropriate hub (HF or ModelScope)"""
+        if self.use_hf:
+            return hf_load_dataset(
+                dataset_id, 
+                name=subset, 
+                split=split, 
+                streaming=streaming,
+                revision=revision,
+                download_mode=download_mode,
+                token=hub_token,
+                num_proc=num_proc
+            )
+        else:
+            # Use ModelScope dataset loading
+            return hf_load_dataset(
+                dataset_id,
+                name=subset,
+                split=split,
+                streaming=streaming,
+                revision=revision,
+                download_mode=download_mode,
+                num_proc=num_proc
+            )
+
+def get_hub(use_hf=False):
+    return VerlHub(use_hf)
 from .preprocessor import RowPreprocessor
 from .register import DATASET_MAPPING, DATASET_TYPE, DatasetMeta, SubsetDataset
 from .utils import sample_dataset

@@ -16,7 +16,8 @@ from modelscope.hub.utils.utils import get_cache_dir
 from torch.utils.data import Dataset, IterableDataset
 from tqdm import tqdm
 
-from swift.utils import get_logger, is_master, safe_ddp_context
+from verl.utils.core.logger import get_logger
+from verl.utils.core.env import is_master, safe_ddp_context
 from ..templates import MaxLengthError
 from .preprocessor import RowPreprocessor
 

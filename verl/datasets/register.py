@@ -6,7 +6,12 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import json
 
-from swift.utils import get_logger, use_hf_hub
+try:
+    from swift.utils import get_logger, use_hf_hub
+except ImportError:
+    from verl.utils.core.logger import get_logger
+    def use_hf_hub():
+        return False
 from .preprocessor import DATASET_TYPE, AutoPreprocessor, MessagesPreprocessor
 
 PreprocessFunc = Callable[..., DATASET_TYPE]

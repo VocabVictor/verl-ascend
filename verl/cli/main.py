@@ -143,6 +143,12 @@ def _add_sft_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Model author name')
     parser.add_argument('--model_name', type=str,
                         help='Model name')
+    
+    # Dataset field mapping arguments
+    parser.add_argument('--prompt_key', type=str, default='problem',
+                        help='Key for prompt field in dataset')
+    parser.add_argument('--response_key', type=str, default='answer',
+                        help='Key for response field in dataset')
 
 
 def _add_rl_arguments(parser: argparse.ArgumentParser) -> None:
