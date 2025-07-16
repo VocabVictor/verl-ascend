@@ -229,16 +229,26 @@ class VerlSft:
         logger.info(f"Training dataset prepared: {len(self.train_dataset)} samples")
         
         # Split validation if needed
-        if len(self.train_dataset) > 100:
-            split_ratio = 0.1  # 10% for validation
-            split_point = int(len(self.train_dataset) * (1 - split_ratio))
-            self.val_dataset = Dataset.from_dict({
-                k: v[split_point:] for k, v in self.train_dataset.to_dict().items()
-            })
-            self.train_dataset = Dataset.from_dict({
-                k: v[:split_point] for k, v in self.train_dataset.to_dict().items()
-            })
-            logger.info(f"Split validation dataset: {len(self.val_dataset)} samples")
+        split_ratio = getattr(args, 'split_dataset_ratio', None)
+        if split_ratio is not None and split_ratio > 0:
+            if len(self.train_dataset) <= 1:
+                logger.warning(f"Dataset too small ({len(self.train_dataset)} samples) for splitting, using full dataset for training")
+            else:
+                split_point = int(len(self.train_dataset) * (1 - split_ratio))
+                if split_point <= 0:
+                    split_point = 1  # Ensure at least 1 sample for training
+                elif split_point >= len(self.train_dataset):
+                    split_point = len(self.train_dataset) - 1  # Ensure at least 1 sample for validation
+                    
+                self.val_dataset = Dataset.from_dict({
+                    k: v[split_point:] for k, v in self.train_dataset.to_dict().items()
+                })
+                self.train_dataset = Dataset.from_dict({
+                    k: v[:split_point] for k, v in self.train_dataset.to_dict().items()
+                })
+                logger.info(f"Split dataset with ratio {split_ratio}: train={len(self.train_dataset)}, val={len(self.val_dataset)} samples")
+        else:
+            logger.info("No dataset splitting configured, using full dataset for training")
     
     def _format_dataset(self, dataset: Dataset) -> Dataset:
         """Format dataset for training"""

@@ -149,6 +149,10 @@ def _add_sft_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Key for prompt field in dataset')
     parser.add_argument('--response_key', type=str, default='answer',
                         help='Key for response field in dataset')
+    
+    # Dataset splitting arguments
+    parser.add_argument('--split_dataset_ratio', type=float, default=None,
+                        help='Ratio to split dataset into train/validation. If not provided, use full dataset for training.')
 
 
 def _add_rl_arguments(parser: argparse.ArgumentParser) -> None:

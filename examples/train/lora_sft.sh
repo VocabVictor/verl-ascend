@@ -1,6 +1,6 @@
 # 22GB
 # qwen3: https://github.com/modelscope/ms-swift/blob/main/examples/train/think_model/qwen3_demo1.sh
-CUDA_VISIBLE_DEVICES=0,1,2,3 \
+CUDA_VISIBLE_DEVICES=0,1 \
 verl sft \
     --model Qwen/Qwen2.5-3B-Instruct \
     --train_type lora \
@@ -19,7 +19,7 @@ verl sft \
     --save_total_limit 2 \
     --logging_steps 5 \
     --max_length 2048 \
-    --output_dir output \
+    --output_dir ~/verl-outputs/experiments/lora_sft_$(date +%Y%m%d_%H%M%S) \
     --system 'You are a helpful assistant.' \
     --warmup_ratio 0.05 \
     --dataloader_num_workers 4 \
