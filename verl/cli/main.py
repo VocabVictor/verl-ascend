@@ -1,294 +1,92 @@
-#!/usr/bin/env python3
-# Copyright 2024 Bytedance Ltd. and/or its affiliates
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-"""
-VERL Command Line Interface
-"""
-
-import argparse
+# Copyright (c) Alibaba, Inc. and its affiliates.
+import importlib.util
+import os
+import subprocess
 import sys
-from typing import Optional, List
+from typing import Dict, List, Optional
+
+from verl.utils import get_logger
+
+logger = get_logger()
+
+ROUTE_MAPPING: Dict[str, str] = {
+    'pt': 'verl.cli.pt',
+    'sft': 'verl.cli.sft',
+    'infer': 'verl.cli.infer',
+    'merge-lora': 'verl.cli.merge_lora',
+    'web-ui': 'verl.cli.web_ui',
+    'deploy': 'verl.cli.deploy',
+    'rollout': 'verl.cli.rollout',
+    'rlhf': 'verl.cli.rlhf',
+    'sample': 'verl.cli.sample',
+    'export': 'verl.cli.export',
+    'eval': 'verl.cli.eval',
+    'app': 'verl.cli.app',
+}
 
 
-def main(args: Optional[List[str]] = None) -> int:
-    """Main CLI entry point for VERL"""
-    parser = argparse.ArgumentParser(
-        prog='verl',
-        description='VERL: Volcano Engine Reinforcement Learning for LLM',
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
+def use_torchrun() -> bool:
+    nproc_per_node = os.getenv('NPROC_PER_NODE')
+    nnodes = os.getenv('NNODES')
+    if nproc_per_node is None and nnodes is None:
+        return False
+    return True
+
+
+def get_torchrun_args() -> Optional[List[str]]:
+    if not use_torchrun():
+        return
+    torchrun_args = []
+    for env_key in ['NPROC_PER_NODE', 'MASTER_PORT', 'NNODES', 'NODE_RANK', 'MASTER_ADDR']:
+        env_val = os.getenv(env_key)
+        if env_val is None:
+            continue
+        torchrun_args += [f'--{env_key.lower()}', env_val]
+    return torchrun_args
+
+
+def _compat_web_ui(argv):
+    # [compat]
+    method_name = argv[0]
+    if method_name in {'web-ui', 'web_ui'} and ('--model' in argv or '--adapters' in argv or '--ckpt_dir' in argv):
+        argv[0] = 'app'
+        logger.warning('Please use `verl app`.')
+
+
+def cli_main(route_mapping: Optional[Dict[str, str]] = None) -> None:
+    route_mapping = route_mapping or ROUTE_MAPPING
+    argv = sys.argv[1:]
     
-    subparsers = parser.add_subparsers(
-        dest='command',
-        help='Available commands',
-        metavar='COMMAND'
-    )
+    # Handle no arguments or help
+    if not argv or argv[0] in ['-h', '--help', 'help']:
+        print("Usage: verl <command> [options]")
+        print("\nAvailable commands:")
+        for cmd in sorted(route_mapping.keys()):
+            print(f"  {cmd}")
+        print("\nFor help with a specific command, use: verl <command> --help")
+        sys.exit(0)
     
-    # SFT subcommand
-    sft_parser = subparsers.add_parser(
-        'sft',
-        help='Supervised Fine-Tuning with multi-modal support',
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
+    _compat_web_ui(argv)
+    method_name = argv[0].replace('_', '-')
     
-    # Add SFT arguments (forwarded to Swift SFT)
-    _add_sft_arguments(sft_parser)
+    if method_name not in route_mapping:
+        print(f"Error: Unknown command '{method_name}'")
+        print(f"Available commands: {', '.join(sorted(route_mapping.keys()))}")
+        sys.exit(1)
     
-    # RL subcommand
-    rl_parser = subparsers.add_parser(
-        'rl',
-        help='RLHF (Reinforcement Learning from Human Feedback) training',
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    
-    # Add RL arguments (forwarded to Swift RLHF)
-    _add_rl_arguments(rl_parser)
-    
-    # Parse arguments
-    if args is None:
-        args = sys.argv[1:]
-    
-    parsed_args = parser.parse_args(args)
-    
-    if parsed_args.command == 'sft':
-        from .sft import sft_main
-        return sft_main(parsed_args)
-    elif parsed_args.command == 'rl':
-        from .rl import rl_main
-        return rl_main(parsed_args)
-    elif parsed_args.command is None:
-        parser.print_help()
-        return 1
+    argv = argv[1:]
+    file_path = importlib.util.find_spec(route_mapping[method_name]).origin
+    torchrun_args = get_torchrun_args()
+    python_cmd = sys.executable
+    if torchrun_args is None or method_name not in {'pt', 'sft', 'rlhf', 'infer'}:
+        args = [python_cmd, file_path, *argv]
     else:
-        print(f"Unknown command: {parsed_args.command}")
-        return 1
-
-
-def _add_sft_arguments(parser: argparse.ArgumentParser) -> None:
-    """Add SFT-specific arguments"""
-    # Core training arguments
-    parser.add_argument('--model', type=str, required=True,
-                        help='Model path or identifier')
-    parser.add_argument('--dataset', type=str, nargs='+',
-                        help='Dataset name or path (supports multiple datasets)')
-    parser.add_argument('--train_type', type=str, default='lora',
-                        choices=['lora', 'full', 'qlora'],
-                        help='Training type')
-    
-    # LoRA arguments
-    parser.add_argument('--lora_rank', type=int, default=8,
-                        help='LoRA rank')
-    parser.add_argument('--lora_alpha', type=int, default=32,
-                        help='LoRA alpha')
-    parser.add_argument('--target_modules', type=str, default='all-linear',
-                        help='Target modules for LoRA')
-    
-    # Training arguments
-    parser.add_argument('--num_train_epochs', type=int, default=1,
-                        help='Number of training epochs')
-    parser.add_argument('--per_device_train_batch_size', type=int, default=1,
-                        help='Training batch size per device')
-    parser.add_argument('--per_device_eval_batch_size', type=int, default=1,
-                        help='Evaluation batch size per device')
-    parser.add_argument('--learning_rate', type=float, default=1e-4,
-                        help='Learning rate')
-    parser.add_argument('--gradient_accumulation_steps', type=int, default=16,
-                        help='Gradient accumulation steps')
-    
-    # Evaluation and saving
-    parser.add_argument('--eval_steps', type=int, default=50,
-                        help='Evaluation steps')
-    parser.add_argument('--save_steps', type=int, default=50,
-                        help='Save steps')
-    parser.add_argument('--save_total_limit', type=int, default=2,
-                        help='Save total limit')
-    parser.add_argument('--logging_steps', type=int, default=10,
-                        help='Logging steps')
-    
-    # Model arguments
-    parser.add_argument('--torch_dtype', type=str, default='bfloat16',
-                        choices=['float16', 'bfloat16', 'float32'],
-                        help='Torch dtype')
-    parser.add_argument('--max_length', type=int, default=2048,
-                        help='Maximum sequence length')
-    
-    # Output
-    parser.add_argument('--output_dir', type=str, default='output',
-                        help='Output directory')
-    
-    # Other arguments
-    parser.add_argument('--warmup_ratio', type=float, default=0.05,
-                        help='Warmup ratio')
-    parser.add_argument('--dataloader_num_workers', type=int, default=4,
-                        help='Dataloader num workers')
-    
-    # Template arguments
-    parser.add_argument('--system', type=str,
-                        help='System prompt to override default')
-    
-    # Model metadata arguments
-    parser.add_argument('--model_author', type=str,
-                        help='Model author name')
-    parser.add_argument('--model_name', type=str,
-                        help='Model name')
-    
-    # Dataset field mapping arguments
-    parser.add_argument('--prompt_key', type=str, default='problem',
-                        help='Key for prompt field in dataset')
-    parser.add_argument('--response_key', type=str, default='answer',
-                        help='Key for response field in dataset')
-    
-    # Dataset splitting arguments
-    parser.add_argument('--split_dataset_ratio', type=float, default=None,
-                        help='Ratio to split dataset into train/validation. If not provided, use full dataset for training.')
-
-
-def _add_rl_arguments(parser: argparse.ArgumentParser) -> None:
-    """Add RL (RLHF) specific arguments"""
-    # 算法选择
-    parser.add_argument('--rlhf_type', '--algorithm', type=str, default='dpo',
-                        choices=['dpo', 'orpo', 'simpo', 'kto', 'cpo', 'rm', 'ppo', 'grpo', 'gkd'],
-                        help='RLHF algorithm type')
-    
-    # 模型配置
-    parser.add_argument('--model', type=str, required=True,
-                        help='Base model path or identifier')
-    parser.add_argument('--model_type', type=str,
-                        help='Model type (optional, auto-detected)')
-    parser.add_argument('--ref_model', type=str,
-                        help='Reference model for comparison')
-    parser.add_argument('--reward_model', type=str,
-                        help='Reward model for scoring')
-    
-    # 训练配置
-    parser.add_argument('--train_type', type=str, default='lora',
-                        choices=['lora', 'full'],
-                        help='Training type')
-    parser.add_argument('--torch_dtype', type=str, default='bfloat16',
-                        choices=['float16', 'bfloat16', 'float32'],
-                        help='Model precision')
-    parser.add_argument('--max_length', type=int, default=2048,
-                        help='Maximum sequence length')
-    parser.add_argument('--max_completion_length', type=int, default=512,
-                        help='Maximum completion length')
-    parser.add_argument('--response_length', type=int,
-                        help='Response length for generation (PPO/GRPO)')
-    
-    # 基础训练参数
-    parser.add_argument('--num_train_epochs', type=int, default=1,
-                        help='Number of training epochs')
-    parser.add_argument('--per_device_train_batch_size', type=int, default=1,
-                        help='Training batch size per device')
-    parser.add_argument('--per_device_eval_batch_size', type=int, default=1,
-                        help='Evaluation batch size per device')
-    parser.add_argument('--gradient_accumulation_steps', type=int, default=16,
-                        help='Gradient accumulation steps')
-    parser.add_argument('--learning_rate', type=float, default=1e-4,
-                        help='Learning rate')
-    parser.add_argument('--warmup_ratio', type=float, default=0.05,
-                        help='Warmup ratio')
-    
-    # RLHF特定参数
-    parser.add_argument('--beta', type=float, default=0.1,
-                        help='KL regularization coefficient')
-    parser.add_argument('--label_smoothing', type=float, default=0,
-                        help='Label smoothing')
-    parser.add_argument('--temperature', type=float, default=0.9,
-                        help='Generation temperature')
-    
-    # DPO/CPO/SimPO参数
-    parser.add_argument('--rpo_alpha', type=float, default=1.0,
-                        help='RPO alpha parameter')
-    parser.add_argument('--cpo_alpha', type=float, default=1.0,
-                        help='CPO alpha parameter')
-    parser.add_argument('--simpo_gamma', type=float, default=1.0,
-                        help='SimPO gamma parameter')
-    
-    # KTO参数
-    parser.add_argument('--desirable_weight', type=float, default=1.0,
-                        help='Desirable outcome weight')
-    parser.add_argument('--undesirable_weight', type=float, default=1.0,
-                        help='Undesirable outcome weight')
-    
-    # PPO参数
-    parser.add_argument('--num_ppo_epochs', type=int, default=4,
-                        help='PPO epochs per update')
-    parser.add_argument('--whiten_rewards', action='store_true',
-                        help='Whether to whiten rewards')
-    parser.add_argument('--kl_coef', type=float, default=0.05,
-                        help='KL regularization coefficient')
-    parser.add_argument('--cliprange', type=float, default=0.2,
-                        help='PPO clip range')
-    parser.add_argument('--vf_coef', type=float, default=0.1,
-                        help='Value function coefficient')
-    parser.add_argument('--gamma', type=float, default=1.0,
-                        help='Discount factor')
-    parser.add_argument('--lam', type=float, default=0.95,
-                        help='GAE lambda')
-    
-    # GRPO参数
-    parser.add_argument('--num_generations', type=int, default=8,
-                        help='Generations per prompt (GRPO)')
-    parser.add_argument('--reward_funcs', type=str, nargs='+',
-                        help='Reward functions list')
-    parser.add_argument('--use_vllm', action='store_true',
-                        help='Use vLLM for generation')
-    parser.add_argument('--num_iterations', type=int, default=1,
-                        help='Training iterations')
-    
-    # GKD参数
-    parser.add_argument('--teacher_model', type=str,
-                        help='Teacher model for distillation')
-    parser.add_argument('--lmbda', type=float, default=0.5,
-                        help='Mixing coefficient (GKD)')
-    
-    # 数据配置
-    parser.add_argument('--dataset', type=str,
-                        help='Training dataset')
-    parser.add_argument('--val_dataset', type=str,
-                        help='Validation dataset')
-    
-    # LoRA配置
-    parser.add_argument('--lora_rank', type=int, default=8,
-                        help='LoRA rank')
-    parser.add_argument('--lora_alpha', type=int, default=32,
-                        help='LoRA alpha')
-    parser.add_argument('--lora_dropout', type=float, default=0.05,
-                        help='LoRA dropout')
-    parser.add_argument('--target_modules', type=str, default='all-linear',
-                        help='Target modules for LoRA')
-    
-    # 输出和日志
-    parser.add_argument('--output_dir', type=str, default='output',
-                        help='Output directory')
-    parser.add_argument('--logging_steps', type=int, default=5,
-                        help='Logging frequency')
-    parser.add_argument('--save_steps', type=int, default=100,
-                        help='Save frequency')
-    parser.add_argument('--eval_steps', type=int, default=100,
-                        help='Evaluation frequency')
-    parser.add_argument('--save_total_limit', type=int, default=2,
-                        help='Max checkpoints to keep')
-    
-    # 高级配置
-    parser.add_argument('--deepspeed', type=str,
-                        choices=['zero0', 'zero1', 'zero2', 'zero3'],
-                        help='DeepSpeed configuration')
-    parser.add_argument('--dataloader_num_workers', type=int, default=4,
-                        help='Data loader workers')
+        args = [python_cmd, '-m', 'torch.distributed.run', *torchrun_args, file_path, *argv]
+    print(f"run sh: `{' '.join(args)}`", flush=True)
+    result = subprocess.run(args)
+    if result.returncode != 0:
+        sys.exit(result.returncode)
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    cli_main()

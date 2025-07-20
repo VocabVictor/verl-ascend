@@ -11,7 +11,7 @@ from torch import nn
 from transformers import Cache, StaticCache
 from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, repeat_kv
 
-from swift.utils import get_logger
+from verl.utils import get_logger
 
 logger = get_logger()
 

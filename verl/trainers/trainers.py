@@ -15,14 +15,14 @@ from transformers import Trainer as HfTrainer
 from transformers.models.auto.modeling_auto import MODEL_FOR_CAUSAL_LM_MAPPING_NAMES
 from transformers.utils import is_peft_available
 
-from swift.utils import JsonlWriter, Serializer, gc_collect, get_logger, unwrap_model_for_generation
+from verl.utils import JsonlWriter, Serializer, gc_collect, get_logger, unwrap_model_for_generation
 from .arguments import Seq2SeqTrainingArguments, TrainingArguments
-from .mixin import DataLoaderMixin, SwiftMixin
+from .mixin import DataLoaderMixin, VerlMixin
 
 logger = get_logger()
 
 
-class Trainer(SwiftMixin, HfTrainer):
+class Trainer(VerlMixin, HfTrainer):
     args: TrainingArguments
 
     @contextmanager
@@ -72,7 +72,7 @@ class EmbeddingTrainer(Trainer):
         self.label_names = ['labels']
 
     def calculate_metric(self, eval_prediction: EvalPrediction) -> Dict[str, float]:
-        from swift.plugin.loss import infonce_loss, calculate_paired_metrics, calculate_infonce_metrics
+        from verl.plugin.loss import infonce_loss, calculate_paired_metrics, calculate_infonce_metrics
         if self.compute_loss_func is infonce_loss:
             return calculate_infonce_metrics(eval_prediction.predictions, eval_prediction.label_ids)
         else:
@@ -87,7 +87,7 @@ class RerankerTrainer(Trainer):
         self.label_names = ['labels']
 
         # Set up preprocess_logits_for_metrics to reduce memory usage for generative reranker
-        from swift.plugin.loss import get_loss_func, LossType
+        from verl.plugin.loss import get_loss_func, LossType
         if self.compute_loss_func in [
                 get_loss_func(LossType.generative_reranker),
                 get_loss_func(LossType.listwise_generative_reranker)
@@ -134,7 +134,7 @@ class RerankerTrainer(Trainer):
             return logits
 
     def calculate_metric(self, eval_prediction: EvalPrediction) -> Dict[str, float]:
-        from swift.plugin.loss import (get_loss_func, LossType, calculate_reranker_metrics)
+        from verl.plugin.loss import (get_loss_func, LossType, calculate_reranker_metrics)
 
         # Check if we're using generative reranker (point-wise or list-wise)
         if self.compute_loss_func in [
@@ -162,7 +162,7 @@ class RerankerTrainer(Trainer):
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         # Check if we have a custom loss function
         if self.compute_loss_func is not None:
-            from swift.plugin.loss import get_loss_func, LossType
+            from verl.plugin.loss import get_loss_func, LossType
             loss_kwargs = {}
 
             if self.compute_loss_func in [
@@ -196,14 +196,14 @@ class RerankerTrainer(Trainer):
             return super().compute_loss(model, inputs, return_outputs, num_items_in_batch)
 
 
-class Seq2SeqTrainer(SwiftMixin, DataLoaderMixin, HfSeq2SeqTrainer):
+class Seq2SeqTrainer(VerlMixin, DataLoaderMixin, HfSeq2SeqTrainer):
     args: Seq2SeqTrainingArguments
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model_accepts_loss_kwargs = True  # fix transformers>=4.46.2
         if self.args.predict_with_generate:
-            from swift.llm import PtEngine
+            from verl.llm import PtEngine
             self.infer_engine = PtEngine.from_model_template(
                 self.model, self.template, max_batch_size=self.args.per_device_eval_batch_size)
         self.jsonl_writer = JsonlWriter(os.path.join(self.args.output_dir, 'predict.jsonl'))
@@ -216,9 +216,15 @@ class Seq2SeqTrainer(SwiftMixin, DataLoaderMixin, HfSeq2SeqTrainer):
     def _patch_predict_with_generate(self):
         origin_data_collator = self.data_collator
         self.data_collator = self._predict_data_collator
+        _packing = self.template._packing
+        padding_free = self.template.padding_free
+        self.template._packing = False
+        self.template.padding_free = False
         try:
             yield
         finally:
+            self.template._packing = _packing
+            self.template.padding_free = padding_free
             self.data_collator = origin_data_collator
 
     def evaluate(self, *args, **kwargs):
@@ -237,10 +243,11 @@ class Seq2SeqTrainer(SwiftMixin, DataLoaderMixin, HfSeq2SeqTrainer):
         **gen_kwargs,
     ) -> Tuple[Optional[float], Optional[torch.Tensor], Optional[torch.Tensor]]:
         if not self.args.predict_with_generate or prediction_loss_only:
+            inputs['_position_ids'] = inputs.get('position_ids')
             with self.template.forward_context(self.model, inputs):
                 return super().prediction_step(
                     model, inputs, prediction_loss_only=prediction_loss_only, ignore_keys=ignore_keys)
-        from swift.llm import RequestConfig, InferRequest
+        from verl.llm import RequestConfig, InferRequest
         data_list = inputs['_data']
         labels_list = [InferRequest.remove_response(data['messages']) for data in data_list]
         with unwrap_model_for_generation(
@@ -265,10 +272,10 @@ class Seq2SeqTrainer(SwiftMixin, DataLoaderMixin, HfSeq2SeqTrainer):
         labels_list = pad_sequence(labels_list, batch_first=True, padding_value=0)
         return None, response_list, labels_list
 
-    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
-        from swift.plugin.loss import get_loss_func
+    def _prepare_inputs(self, inputs):
+        inputs = super()._prepare_inputs(inputs)
+        from verl.plugin.loss import get_loss_func
         loss_kwargs = {}
-        labels = None
         compute_loss_func = self.compute_loss_func
         loss_scale = inputs.pop('loss_scale', None)
         if loss_scale is not None:
@@ -277,24 +284,39 @@ class Seq2SeqTrainer(SwiftMixin, DataLoaderMixin, HfSeq2SeqTrainer):
                 compute_loss_func = get_loss_func('loss_scale')
 
         sample_channels = inputs.pop('channel', None)
-        if sample_channels is not None and self.args.channels is not None:
+        position_ids = inputs.pop('_position_ids', None)
+        if self.args.channels is not None:
+            assert sample_channels is not None, f'sample_channels: {sample_channels}'
             state = self.state
             setattr(state, 'local_step', getattr(state, 'local_step', 0))
             setattr(state, 'ch_loss_steps', getattr(state, 'ch_loss_steps', {}))
 
             loss_kwargs['sample_channels'] = sample_channels
             loss_kwargs['trainer'] = self
-            if inputs.get('position_ids') is not None:
-                loss_kwargs['position_ids'] = inputs['position_ids']
+            if position_ids is None:
+                position_ids = inputs.get('position_ids')
+            if position_ids is not None:
+                loss_kwargs['position_ids'] = position_ids
 
-        if (self.label_smoother is not None or compute_loss_func is not None) and 'labels' in inputs:
-            labels = inputs.pop('labels')
-
-        use_logits_to_keep = self.get_use_logits_to_keep('labels' in inputs)
+        use_logits_to_keep = self.get_use_logits_to_keep('labels' in inputs and self.label_smoother is None
+                                                         and compute_loss_func is None)
         if use_logits_to_keep:
             inputs['labels'], logits_to_keep = self.get_logits_to_keep(inputs['labels'])
             if logits_to_keep is not None:
                 inputs['logits_to_keep'] = logits_to_keep
+
+        inputs['compute_loss_func'] = compute_loss_func
+        inputs['loss_kwargs'] = loss_kwargs
+        return inputs
+
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+        labels = None
+        compute_loss_func = inputs.pop('compute_loss_func', None)
+        loss_kwargs = inputs.pop('loss_kwargs', {})
+
+        if (self.label_smoother is not None or compute_loss_func is not None) and 'labels' in inputs:
+            labels = inputs.pop('labels')
+
         outputs = model(**inputs)
         # Save past state if it exists
         # TODO: this needs to be fixed and made cleaner later.
@@ -329,7 +351,7 @@ class Seq2SeqTrainer(SwiftMixin, DataLoaderMixin, HfSeq2SeqTrainer):
                 loss = self.label_smoother(outputs, labels)
 
         if self.template.sequence_parallel_size > 1:
-            from swift.trainers.sequence_parallel import sequence_parallel
+            from verl.trainers.sequence_parallel import sequence_parallel
             loss = sequence_parallel.reduce_outputs(loss, labels)
 
         if getattr(self.args, 'average_tokens_across_devices', False) and self.model_accepts_loss_kwargs:
@@ -341,5 +363,6 @@ class Seq2SeqTrainer(SwiftMixin, DataLoaderMixin, HfSeq2SeqTrainer):
         return (loss, outputs) if return_outputs else loss
 
     def training_step(self, model, inputs, *args, **kwargs):
+        inputs['_position_ids'] = inputs.get('position_ids')
         with self.template.forward_context(self.model, inputs):
             return super().training_step(model, inputs, *args, **kwargs)

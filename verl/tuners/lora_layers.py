@@ -21,9 +21,9 @@ from peft.tuners.tuners_utils import BaseTunerLayer
 from peft.utils import _get_submodules, get_quantization_config
 from transformers import Conv1D
 
-from swift.utils import get_logger
+from verl.utils import get_logger
 from .peft import LoraConfig
-from .utils import ActivationMixin, ModulesToSaveWrapper, SwiftAdapter
+from .utils import ActivationMixin, ModulesToSaveWrapper, VerlAdapter
 
 logger = get_logger()
 dispatchers = []
@@ -50,11 +50,11 @@ class LoRAActivationMixin(ActivationMixin):
                 if key in adapter_names:
                     self.set_activation(key, True)
                     layer.requires_grad_(True)
-                    SwiftAdapter.save_memory(layer, key, self.module_key, True)
+                    VerlAdapter.save_memory(layer, key, self.module_key, True)
                 else:
                     self.set_activation(key, False)
                     layer.requires_grad_(False)
-                    SwiftAdapter.save_memory(layer, key, self.module_key, False, offload=offload)
+                    VerlAdapter.save_memory(layer, key, self.module_key, False, offload=offload)
 
     def save_memory(self, adapter_name, activate, offload=None):
         for layer_name in self.adapter_layer_names:
@@ -62,9 +62,9 @@ class LoRAActivationMixin(ActivationMixin):
             for key, layer in module_dict.items():
                 if key == adapter_name:
                     if activate:
-                        SwiftAdapter.save_memory(layer, layer_name + '.' + key, self.module_key, True)
+                        VerlAdapter.save_memory(layer, layer_name + '.' + key, self.module_key, True)
                     else:
-                        SwiftAdapter.save_memory(layer, layer_name + '.' + key, self.module_key, False, offload=offload)
+                        VerlAdapter.save_memory(layer, layer_name + '.' + key, self.module_key, False, offload=offload)
 
     def merge(self, *args, **kwargs):
         if not self.unique_thread:
@@ -173,7 +173,7 @@ def dispatch_default(
         new_module = Conv2d(target, adapter_name, module_key=module_key, **kwargs)
     elif isinstance(target_base_layer, torch.nn.Linear):
         if target_base_layer.__class__.__name__ == 'NonDynamicallyQuantizableLinear':
-            # Fix issue: https://github.com/modelscope/ms-swift/issues/342
+            # Fix issue: https://github.com/modelscope/ms-verl/issues/342
             return None
         if kwargs['fan_in_fan_out']:
             warnings.warn('fan_in_fan_out is set to True but the target module is `torch.nn.Linear`. '
@@ -416,7 +416,7 @@ class LoraModel(_LoraModel):
 
         if isinstance(target, LoraLayer) and not isinstance(target, AdaLoraLayer):
             if target.__class__.__name__ == 'NonDynamicallyQuantizableLinear':
-                # Fix issue: https://github.com/modelscope/ms-swift/issues/342
+                # Fix issue: https://github.com/modelscope/ms-verl/issues/342
                 return
             target.update_layer(
                 adapter_name,

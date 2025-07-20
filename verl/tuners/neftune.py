@@ -4,14 +4,14 @@ from dataclasses import dataclass, field
 import torch
 from torch import nn
 
-from swift.utils.logger import get_logger
-from .utils import SwiftAdapter, SwiftConfig, SwiftOutput
+from verl.utils.logger import get_logger
+from .utils import VerlAdapter, VerlConfig, VerlOutput
 
 logger = get_logger()
 
 
 @dataclass
-class NEFTuneConfig(SwiftConfig):
+class NEFTuneConfig(VerlConfig):
     """
     The configuration class for the NEFTune module.
 
@@ -24,14 +24,14 @@ class NEFTuneConfig(SwiftConfig):
     noise_alpha: float = field(default=5.0, metadata={'help': 'The noise alpha value used for the NEFTune'})
 
     def __post_init__(self):
-        from .mapping import SwiftTuners
-        self.swift_type = SwiftTuners.NEFTUNE
+        from .mapping import VerlTuners
+        self.verl_type = VerlTuners.NEFTUNE
 
 
-class NEFTune(SwiftAdapter):
+class NEFTune(VerlAdapter):
 
     @staticmethod
-    def prepare_model(model: nn.Module, config: NEFTuneConfig, adapter_name: str) -> SwiftOutput:
+    def prepare_model(model: nn.Module, config: NEFTuneConfig, adapter_name: str) -> VerlOutput:
         """Prepare a model with `NEFTuneConfig`"""
         for sub_module in model.modules():
             if isinstance(sub_module, torch.nn.Embedding):
@@ -55,7 +55,7 @@ class NEFTune(SwiftAdapter):
         def mark_trainable_callback(model):
             return
 
-        return SwiftOutput(
+        return VerlOutput(
             config=config, state_dict_callback=state_dict_callback, mark_trainable_callback=mark_trainable_callback)
 
     @staticmethod

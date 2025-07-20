@@ -7,7 +7,7 @@ from typing import List, Union
 from peft import PeftModel
 from torch.nn import Module
 
-from swift.utils import get_logger
+from verl.utils import get_logger
 
 logger = get_logger()
 

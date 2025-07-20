@@ -6,15 +6,15 @@ from typing import Optional
 import torch
 from torch import nn
 
-from swift.llm import MODEL_ARCH_MAPPING, HfConfigFactory, ModelKeys
-from swift.utils.logger import get_logger
-from .utils import ActivationMixin, SwiftAdapter, SwiftConfig, SwiftOutput
+from verl.llm import MODEL_ARCH_MAPPING, HfConfigFactory, ModelKeys
+from verl.utils.logger import get_logger
+from .utils import ActivationMixin, VerlAdapter, VerlConfig, VerlOutput
 
 logger = get_logger()
 
 
 @dataclass
-class LLaMAProConfig(SwiftConfig):
+class LLaMAProConfig(VerlConfig):
     """
     The configuration class for the LLaMAPro module.
 
@@ -37,14 +37,14 @@ class LLaMAProConfig(SwiftConfig):
     num_groups: Optional[int] = None
 
     def __post_init__(self):
-        from .mapping import SwiftTuners
-        self.swift_type = SwiftTuners.LLAMAPRO
+        from .mapping import VerlTuners
+        self.verl_type = VerlTuners.LLAMAPRO
 
 
-class LLaMAPro(SwiftAdapter):
+class LLaMAPro(VerlAdapter):
 
     @staticmethod
-    def prepare_model(model: nn.Module, config: LLaMAProConfig, adapter_name: str) -> SwiftOutput:
+    def prepare_model(model: nn.Module, config: LLaMAProConfig, adapter_name: str) -> VerlOutput:
         """Prepare a model with `LLaMAProConfig`"""
         num_hidden_layers = HfConfigFactory.get_config_attr(model.config, 'num_hidden_layers')
         if num_hidden_layers is None:
@@ -65,7 +65,7 @@ class LLaMAPro(SwiftAdapter):
         except AssertionError as e:
             model_type = LLaMAPro.search_correct_model_type(model)
             if model_type is None:
-                language_model_name = SwiftAdapter.get_model_key_mapping(config.model_type, config).language_model
+                language_model_name = VerlAdapter.get_model_key_mapping(config.model_type, config).language_model
                 if language_model_name:
                     if isinstance(language_model_name, str):
                         language_model_name = [language_model_name]
@@ -121,7 +121,7 @@ class LLaMAPro(SwiftAdapter):
 
         config.model_type = origin_model_type
         model.activate_module = activate_module
-        return SwiftOutput(
+        return VerlOutput(
             config=config, state_dict_callback=state_dict_callback, mark_trainable_callback=mark_trainable_callback)
 
     @staticmethod
@@ -161,7 +161,7 @@ class LLaMAPro(SwiftAdapter):
     @classmethod
     def get_model_key_mapping(cls, model_type, config) -> ModelKeys:
 
-        model_key_mapping = SwiftAdapter.get_model_key_mapping(model_type, config)
+        model_key_mapping = VerlAdapter.get_model_key_mapping(model_type, config)
         assert model_key_mapping.o_proj is not None and model_key_mapping.down_proj is not None, \
             'LLaMAPro only support models with o_proj and down_proj components.'
         return model_key_mapping

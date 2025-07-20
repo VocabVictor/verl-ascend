@@ -7,16 +7,16 @@ from typing import List, Optional, Union
 import torch
 from torch import nn
 
-from swift.tuners.utils import ActivationMixin, SwiftAdapter, SwiftConfig, SwiftOutput
-from swift.utils import get_logger
-from swift.utils.torch_utils import find_sub_module
+from verl.tuners.utils import ActivationMixin, VerlAdapter, VerlConfig, VerlOutput
+from verl.utils import get_logger
+from verl.utils.torch_utils import find_sub_module
 from .scetuning_components import probe_output_hook
 
 logger = get_logger()
 
 
 @dataclass
-class SCETuningConfig(SwiftConfig):
+class SCETuningConfig(VerlConfig):
     """
     The configuration class for the SCEdit module.
 
@@ -52,14 +52,14 @@ class SCETuningConfig(SwiftConfig):
     down_ratio: float = field(default=1.0, metadata={'help': 'The dim down ratio of tuner hidden state'})
 
     def __post_init__(self):
-        from swift.tuners.mapping import SwiftTuners
-        self.swift_type = SwiftTuners.SCETUNING
+        from verl.tuners.mapping import VerlTuners
+        self.verl_type = VerlTuners.SCETUNING
 
 
-class SCETuning(SwiftAdapter):
+class SCETuning(VerlAdapter):
 
     @staticmethod
-    def prepare_model(model: nn.Module, config: SCETuningConfig, adapter_name: str) -> SwiftOutput:
+    def prepare_model(model: nn.Module, config: SCETuningConfig, adapter_name: str) -> VerlOutput:
         """Prepare a model with `SCETuningConfig`"""
         module_keys = [key for key, _ in model.named_modules()]
         # 1. Matching the hint module
@@ -181,7 +181,7 @@ class SCETuning(SwiftAdapter):
         def mark_trainable_callback(model):
             return
 
-        return SwiftOutput(
+        return VerlOutput(
             config=config, state_dict_callback=state_dict_callback, mark_trainable_callback=mark_trainable_callback)
 
     @staticmethod
@@ -191,7 +191,7 @@ class SCETuning(SwiftAdapter):
             _module: ActivationMixin
             _module: nn.Module
             _module.set_activation(adapter_name, activate)
-            SwiftAdapter.save_memory(_module, adapter_name, _module.module_key, activate, offload)
+            VerlAdapter.save_memory(_module, adapter_name, _module.module_key, activate, offload)
 
 
 class SCETunerModule(nn.Module, ActivationMixin):

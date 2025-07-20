@@ -7,14 +7,14 @@ import json
 import torch
 from torch import nn
 
-from swift.utils import get_logger, patch_getattr
-from .utils import SwiftAdapter, SwiftConfig, SwiftOutput
+from verl.utils import get_logger, patch_getattr
+from .utils import VerlAdapter, VerlConfig, VerlOutput
 
 logger = get_logger()
 
 
 @dataclass
-class ReftConfig(SwiftConfig):
+class ReftConfig(VerlConfig):
     """
     Train a model with Reft.
     Paper: https://arxiv.org/pdf/2404.03592
@@ -41,19 +41,19 @@ class ReftConfig(SwiftConfig):
     args: Optional[str] = None
 
     def __post_init__(self):
-        from .mapping import SwiftTuners
-        self.swift_type = SwiftTuners.REFT
+        from .mapping import VerlTuners
+        self.verl_type = VerlTuners.REFT
         if self.args:
             self.args = json.loads(self.args)
         else:
             self.args = {}
 
 
-class Reft(SwiftAdapter):
+class Reft(VerlAdapter):
 
     @staticmethod
     def prepare_model(model: nn.Module, config: ReftConfig, adapter_name: str):
-        from swift.utils.import_utils import is_pyreft_available
+        from verl.utils.import_utils import is_pyreft_available
         if not is_pyreft_available():
             raise ImportError('Please install pyreft before using ReFT: ' '`pip install pyreft`')
 
@@ -190,16 +190,16 @@ class Reft(SwiftAdapter):
         reft_model.register_forward_pre_hook(_pre_forward_hook, with_kwargs=True)
         reft_model.register_forward_hook(_post_forward_hook, with_kwargs=True)
 
-        def save_callback(swift_model, model_dir, adapter_name):
+        def save_callback(verl_model, model_dir, adapter_name):
             reft_model.save_intervention(save_directory=model_dir, include_model=False)
 
         def mark_trainable_callback(model):
             return
 
-        def load_callback(swift_model, model_dir, adapter_name):
+        def load_callback(verl_model, model_dir, adapter_name):
             reft_model.load_intervention(model_dir, include_model=False)
 
-        return SwiftOutput(
+        return VerlOutput(
             model=reft_model,
             config=config,
             mark_trainable_callback=mark_trainable_callback,

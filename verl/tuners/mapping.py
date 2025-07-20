@@ -13,7 +13,7 @@ from .scetuning.scetuning import SCETuning, SCETuningConfig
 from .side import Side, SideConfig
 
 
-class SwiftTuners:
+class VerlTuners:
     ADAPTER = 'ADAPTER'
     PROMPT = 'PROMPT'
     LORA = 'LORA'
@@ -27,16 +27,16 @@ class SwiftTuners:
     REFT = 'reft'
 
 
-SWIFT_MAPPING = {
-    SwiftTuners.ADAPTER: (AdapterConfig, Adapter),
-    SwiftTuners.PROMPT: (PromptConfig, Prompt),
-    SwiftTuners.LORA: (LoRAConfig, LoRA),
-    SwiftTuners.SIDE: (SideConfig, Side),
-    SwiftTuners.RESTUNING: (ResTuningConfig, ResTuning),
-    SwiftTuners.LONGLORA: (LongLoRAConfig, LongLoRA),
-    SwiftTuners.NEFTUNE: (NEFTuneConfig, NEFTune),
-    SwiftTuners.SCETUNING: (SCETuningConfig, SCETuning),
-    SwiftTuners.LLAMAPRO: (LLaMAProConfig, LLaMAPro),
-    SwiftTuners.PART: (PartConfig, Part),
-    SwiftTuners.REFT: (ReftConfig, Reft),
+VERL_MAPPING = {
+    VerlTuners.ADAPTER: (AdapterConfig, Adapter),
+    VerlTuners.PROMPT: (PromptConfig, Prompt),
+    VerlTuners.LORA: (LoRAConfig, LoRA),
+    VerlTuners.SIDE: (SideConfig, Side),
+    VerlTuners.RESTUNING: (ResTuningConfig, ResTuning),
+    VerlTuners.LONGLORA: (LongLoRAConfig, LongLoRA),
+    VerlTuners.NEFTUNE: (NEFTuneConfig, NEFTune),
+    VerlTuners.SCETUNING: (SCETuningConfig, SCETuning),
+    VerlTuners.LLAMAPRO: (LLaMAProConfig, LLaMAPro),
+    VerlTuners.PART: (PartConfig, Part),
+    VerlTuners.REFT: (ReftConfig, Reft),
 }

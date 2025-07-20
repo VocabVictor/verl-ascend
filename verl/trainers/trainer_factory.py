@@ -4,42 +4,42 @@ import inspect
 from dataclasses import asdict
 from typing import Dict
 
-from swift.utils import get_logger
+from verl.utils import get_logger
 
 logger = get_logger()
 
 
 class TrainerFactory:
     TRAINER_MAPPING = {
-        'causal_lm': 'swift.trainers.Seq2SeqTrainer',
-        'seq_cls': 'swift.trainers.Trainer',
-        'embedding': 'swift.trainers.EmbeddingTrainer',
-        'reranker': 'swift.trainers.RerankerTrainer',
-        'generative_reranker': 'swift.trainers.RerankerTrainer',
-        'dpo': 'swift.trainers.DPOTrainer',
-        'orpo': 'swift.trainers.ORPOTrainer',
-        'kto': 'swift.trainers.KTOTrainer',
-        'cpo': 'swift.trainers.CPOTrainer',
-        'rm': 'swift.trainers.RewardTrainer',
-        'ppo': 'swift.trainers.PPOTrainer',
-        'grpo': 'swift.trainers.GRPOTrainer',
-        'gkd': 'swift.trainers.GKDTrainer',
+        'causal_lm': 'verl.trainers.Seq2SeqTrainer',
+        'seq_cls': 'verl.trainers.Trainer',
+        'embedding': 'verl.trainers.EmbeddingTrainer',
+        'reranker': 'verl.trainers.RerankerTrainer',
+        'generative_reranker': 'verl.trainers.RerankerTrainer',
+        'dpo': 'verl.trainers.DPOTrainer',
+        'orpo': 'verl.trainers.ORPOTrainer',
+        'kto': 'verl.trainers.KTOTrainer',
+        'cpo': 'verl.trainers.CPOTrainer',
+        'rm': 'verl.trainers.RewardTrainer',
+        'ppo': 'verl.trainers.PPOTrainer',
+        'grpo': 'verl.trainers.GRPOTrainer',
+        'gkd': 'verl.trainers.GKDTrainer',
     }
 
     TRAINING_ARGS_MAPPING = {
-        'causal_lm': 'swift.trainers.Seq2SeqTrainingArguments',
-        'seq_cls': 'swift.trainers.TrainingArguments',
-        'embedding': 'swift.trainers.TrainingArguments',
-        'reranker': 'swift.trainers.TrainingArguments',
-        'generative_reranker': 'swift.trainers.TrainingArguments',
-        'dpo': 'swift.trainers.DPOConfig',
-        'orpo': 'swift.trainers.ORPOConfig',
-        'kto': 'swift.trainers.KTOConfig',
-        'cpo': 'swift.trainers.CPOConfig',
-        'rm': 'swift.trainers.RewardConfig',
-        'ppo': 'swift.trainers.PPOConfig',
-        'grpo': 'swift.trainers.GRPOConfig',
-        'gkd': 'swift.trainers.GKDConfig',
+        'causal_lm': 'verl.trainers.Seq2SeqTrainingArguments',
+        'seq_cls': 'verl.trainers.TrainingArguments',
+        'embedding': 'verl.trainers.TrainingArguments',
+        'reranker': 'verl.trainers.TrainingArguments',
+        'generative_reranker': 'verl.trainers.TrainingArguments',
+        'dpo': 'verl.trainers.DPOConfig',
+        'orpo': 'verl.trainers.ORPOConfig',
+        'kto': 'verl.trainers.KTOConfig',
+        'cpo': 'verl.trainers.CPOConfig',
+        'rm': 'verl.trainers.RewardConfig',
+        'ppo': 'verl.trainers.PPOConfig',
+        'grpo': 'verl.trainers.GRPOConfig',
+        'gkd': 'verl.trainers.GKDConfig',
     }
 
     @staticmethod

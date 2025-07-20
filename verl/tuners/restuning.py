@@ -8,16 +8,16 @@ from typing import Dict, List, Optional, Union
 import torch
 import torch.nn as nn
 
-from swift.utils import get_logger
-from swift.utils.torch_utils import find_sub_module
+from verl.utils import get_logger
+from verl.utils.torch_utils import find_sub_module
 from .restuning_components import ResTuner, detach_tensors, probe_input_pre_hook, probe_output_hook
-from .utils import ActivationMixin, SwiftAdapter, SwiftConfig, SwiftOutput
+from .utils import ActivationMixin, VerlAdapter, VerlConfig, VerlOutput
 
 logger = get_logger()
 
 
 @dataclass
-class ResTuningConfig(SwiftConfig):
+class ResTuningConfig(VerlConfig):
     """
     The configuration class for the ResTuning module.
 
@@ -89,15 +89,15 @@ class ResTuningConfig(SwiftConfig):
     use_bypass: bool = field(default=True, metadata={'help': 'Whether to use bypass'})
 
     def __post_init__(self):
-        from .mapping import SwiftTuners
-        self.swift_type = SwiftTuners.RESTUNING
+        from .mapping import VerlTuners
+        self.verl_type = VerlTuners.RESTUNING
         self.target_hidden_pos = 0 if self.target_hidden_pos is None else self.target_hidden_pos
 
 
-class ResTuning(SwiftAdapter):
+class ResTuning(VerlAdapter):
 
     @staticmethod
-    def prepare_model(model: nn.Module, config: ResTuningConfig, adapter_name: str) -> SwiftOutput:
+    def prepare_model(model: nn.Module, config: ResTuningConfig, adapter_name: str) -> VerlOutput:
         """Prepare a model with `ResTuningConfig`"""
 
         def _forward_seq(self, input, *args, **kwargs):
@@ -239,7 +239,7 @@ class ResTuning(SwiftAdapter):
         def mark_trainable_callback(model):
             return
 
-        return SwiftOutput(
+        return VerlOutput(
             config=config, state_dict_callback=state_dict_callback, mark_trainable_callback=mark_trainable_callback)
 
     @staticmethod
@@ -249,7 +249,7 @@ class ResTuning(SwiftAdapter):
             _module: ActivationMixin
             _module: nn.Module
             _module.set_activation(adapter_name, activate)
-            SwiftAdapter.save_memory(_module, adapter_name, _module.module_key, activate, offload)
+            VerlAdapter.save_memory(_module, adapter_name, _module.module_key, activate, offload)
 
 
 class ResTuningBypassModule(nn.Module, ActivationMixin):

@@ -1,17 +1,49 @@
-# Copyright 2024 Bytedance Ltd. and/or its affiliates
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (c) Alibaba, Inc. and its affiliates.
+from typing import TYPE_CHECKING
 
-"""
-VERL Trainers - Trainers
-"""
+from transformers.trainer_callback import TrainerCallback
+from transformers.trainer_utils import (EvaluationStrategy, FSDPOption, HPSearchBackend, HubStrategy, IntervalStrategy,
+                                        SchedulerType)
+
+from verl.utils.import_utils import _LazyModule
+from . import callback
+
+try:
+    # https://github.com/huggingface/transformers/pull/25702
+    from transformers.trainer_utils import ShardedDDPOption
+except ImportError:
+    ShardedDDPOption = None
+
+if TYPE_CHECKING:
+    from .arguments import Seq2SeqTrainingArguments, TrainingArguments, RLHFArgumentsMixin
+    from .rlhf_trainer import (CPOTrainer, DPOTrainer, KTOTrainer, ORPOTrainer, RLHFTrainerMixin, PPOTrainer,
+                               RewardTrainer, GRPOTrainer, GKDTrainer)
+    from .rlhf_arguments import DPOConfig, CPOConfig, KTOConfig, ORPOConfig, PPOConfig, RewardConfig, GKDConfig
+    from .trainer_factory import TrainerFactory
+    from .trainers import Seq2SeqTrainer, Trainer, EmbeddingTrainer, RerankerTrainer
+    from .mixin import VerlMixin
+
+else:
+    _extra_objects = {k: v for k, v in globals().items() if not k.startswith('_')}
+    _import_structure = {
+        'arguments': ['Seq2SeqTrainingArguments', 'TrainingArguments', 'RLHFArgumentsMixin'],
+        'rlhf_arguments':
+        ['DPOConfig', 'CPOConfig', 'KTOConfig', 'ORPOConfig', 'PPOConfig', 'RewardConfig', 'GRPOConfig', 'GKDConfig'],
+        'rlhf_trainer': [
+            'CPOTrainer', 'DPOTrainer', 'KTOTrainer', 'ORPOTrainer', 'RLHFTrainerMixin', 'PPOTrainer', 'RewardTrainer',
+            'GRPOTrainer', 'GKDTrainer'
+        ],
+        'trainer_factory': ['TrainerFactory'],
+        'trainers': ['Seq2SeqTrainer', 'Trainer', 'EmbeddingTrainer', 'RerankerTrainer'],
+        'mixin': ['VerlMixin'],
+    }
+
+    import sys
+
+    sys.modules[__name__] = _LazyModule(
+        __name__,
+        globals()['__file__'],
+        _import_structure,
+        module_spec=__spec__,
+        extra_objects=_extra_objects,
+    )

@@ -5,8 +5,8 @@ from typing import Optional
 
 from transformers import PreTrainedModel, is_datasets_available
 
-from swift.utils import use_torchacc
-from swift.utils.torchacc_utils import (patch_clip_grad_norm, save_ta_ddp_checkpoint, save_ta_fsdp_checkpoint,
+from verl.utils import use_torchacc
+from verl.utils.torchacc_utils import (patch_clip_grad_norm, save_ta_ddp_checkpoint, save_ta_fsdp_checkpoint,
                                         ta_eval_dataloader, ta_load_optimizer_and_scheduler,
                                         ta_save_optimizer_and_scheduler, ta_test_dataloader, ta_train_dataloader,
                                         ta_trim_graph)
@@ -84,7 +84,7 @@ class TorchAccMixin:
 
         import torch_xla.core.xla_model as xm
 
-        # Compatible with swift and peft
+        # Compatible with verl and peft
         output_dir = output_dir if output_dir is not None else self.args.output_dir
 
         if xm.is_master_ordinal(local=False):

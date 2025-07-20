@@ -9,14 +9,14 @@ import torch
 from torch import nn
 from transformers.activations import ACT2CLS
 
-from swift.utils.torch_utils import find_sub_module, get_logger
-from .utils import ActivationMixin, SwiftAdapter, SwiftConfig, SwiftOutput
+from verl.utils.torch_utils import find_sub_module, get_logger
+from .utils import ActivationMixin, VerlAdapter, VerlConfig, VerlOutput
 
 logger = get_logger()
 
 
 @dataclass
-class AdapterConfig(SwiftConfig):
+class AdapterConfig(VerlConfig):
     """
     The configuration class for the adapter module.
 
@@ -59,14 +59,14 @@ class AdapterConfig(SwiftConfig):
     act_layer: str = field(default='gelu', metadata={'help': 'The activation layer of the adapter'})
 
     def __post_init__(self):
-        from .mapping import SwiftTuners
-        self.swift_type = SwiftTuners.ADAPTER
+        from .mapping import VerlTuners
+        self.verl_type = VerlTuners.ADAPTER
 
 
-class Adapter(SwiftAdapter):
+class Adapter(VerlAdapter):
 
     @staticmethod
-    def prepare_model(model: nn.Module, config: AdapterConfig, adapter_name: str) -> SwiftOutput:
+    def prepare_model(model: nn.Module, config: AdapterConfig, adapter_name: str) -> VerlOutput:
         """Prepare a model with `AdapterConfig`"""
         module_keys = [key for key, _ in model.named_modules()]
 
@@ -116,7 +116,7 @@ class Adapter(SwiftAdapter):
         def mark_trainable_callback(model):
             return
 
-        return SwiftOutput(
+        return VerlOutput(
             config=config, state_dict_callback=state_dict_callback, mark_trainable_callback=mark_trainable_callback)
 
     @staticmethod
@@ -126,7 +126,7 @@ class Adapter(SwiftAdapter):
             _module: ActivationMixin
             _module: nn.Module
             _module.set_activation(adapter_name, activate)
-            SwiftAdapter.save_memory(_module, adapter_name, _module.module_key, activate, offload)
+            VerlAdapter.save_memory(_module, adapter_name, _module.module_key, activate, offload)
 
 
 class AdapterModule(nn.Module, ActivationMixin):

@@ -10,13 +10,13 @@ from packaging import version
 from transformers import Trainer
 
 from .lora_layers import *  # noqa
-from .utils import SwiftAdapter, SwiftConfig, SwiftOutput, set_adapter
+from .utils import VerlAdapter, VerlConfig, VerlOutput, set_adapter
 
 logger = get_logger()
 
 
 @dataclass
-class LoRAConfig(LoraConfig, SwiftConfig):
+class LoRAConfig(LoraConfig, VerlConfig):
     """
     The configuration class for the loRA module.
 
@@ -47,8 +47,8 @@ class LoRAConfig(LoraConfig, SwiftConfig):
 
     def __post_init__(self):
         super().__post_init__()
-        from .mapping import SwiftTuners
-        self.swift_type = SwiftTuners.LORA
+        from .mapping import VerlTuners
+        self.verl_type = VerlTuners.LORA
 
     def can_be_saved_to_peft(self) -> bool:
         if self.use_qa_lora or self.use_merged_linear:
@@ -62,8 +62,8 @@ class LoRAConfig(LoraConfig, SwiftConfig):
         _dict.pop('enable_lora', None)
         _dict.pop('lora_dtype', None)
         _dict.pop('use_merged_linear', None)
-        _dict['peft_type'] = _dict['swift_type']
-        _dict.pop('swift_type', None)
+        _dict['peft_type'] = _dict['verl_type']
+        _dict.pop('verl_type', None)
         _dict.pop('lr_ratio', None)
         _dict.pop('model_key_mapping', None)
         return LoraConfig(**_dict)
@@ -72,7 +72,7 @@ class LoRAConfig(LoraConfig, SwiftConfig):
         super(peft.LoraConfig, self).save_pretrained(save_directory, **kwargs)
 
 
-class LoRA(SwiftAdapter):
+class LoRA(VerlAdapter):
 
     @staticmethod
     def prepare_model(model: nn.Module, config: LoRAConfig, adapter_name: str):
@@ -150,7 +150,7 @@ class LoRA(SwiftAdapter):
             ]
             return all_params, param_groups
 
-        return SwiftOutput(
+        return VerlOutput(
             config=config,
             state_dict_callback=state_dict_callback,
             mark_trainable_callback=mark_trainable_callback,

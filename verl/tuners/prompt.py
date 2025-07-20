@@ -8,15 +8,15 @@ from typing import List, Union
 import torch
 from torch import nn
 
-from swift.utils import get_logger
-from swift.utils.torch_utils import find_sub_module
-from .utils import ActivationMixin, SwiftAdapter, SwiftConfig, SwiftOutput
+from verl.utils import get_logger
+from verl.utils.torch_utils import find_sub_module
+from .utils import ActivationMixin, VerlAdapter, VerlConfig, VerlOutput
 
 logger = get_logger()
 
 
 @dataclass
-class PromptConfig(SwiftConfig):
+class PromptConfig(VerlConfig):
     """
     The configuration class for the prompt module.
 
@@ -60,11 +60,11 @@ class PromptConfig(SwiftConfig):
         metadata={'help': 'Whether the embedding is extracted at final stage to keep the same dims with inputs'})
 
     def __post_init__(self):
-        from .mapping import SwiftTuners
-        self.swift_type = SwiftTuners.PROMPT
+        from .mapping import VerlTuners
+        self.verl_type = VerlTuners.PROMPT
 
 
-class Prompt(SwiftAdapter):
+class Prompt(VerlAdapter):
 
     @staticmethod
     def prepare_model(model: nn.Module, config: PromptConfig, adapter_name: str):
@@ -132,7 +132,7 @@ class Prompt(SwiftAdapter):
         def mark_trainable_callback(model):
             return
 
-        return SwiftOutput(
+        return VerlOutput(
             config=config, state_dict_callback=state_dict_callback, mark_trainable_callback=mark_trainable_callback)
 
     @staticmethod
@@ -142,7 +142,7 @@ class Prompt(SwiftAdapter):
             _module: ActivationMixin
             _module: nn.Module
             _module.set_activation(adapter_name, activate)
-            SwiftAdapter.save_memory(_module, adapter_name, _module.module_key, activate, offload)
+            VerlAdapter.save_memory(_module, adapter_name, _module.module_key, activate, offload)
 
 
 class PromptModule(nn.Module, ActivationMixin):

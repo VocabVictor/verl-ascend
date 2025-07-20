@@ -20,18 +20,18 @@ from peft.utils import CONFIG_NAME
 from peft.utils import ModulesToSaveWrapper as _ModulesToSaveWrapper
 from peft.utils import _get_submodules
 
-from swift.llm import MODEL_ARCH_MAPPING, ModelKeys
-from swift.utils import gc_collect
-from swift.utils.constants import BIN_EXTENSIONS
-from swift.utils.logger import get_logger
+from verl.llm import MODEL_ARCH_MAPPING, ModelKeys
+from verl.utils import gc_collect
+from verl.utils.constants import BIN_EXTENSIONS
+from verl.utils.logger import get_logger
 
 logger = get_logger()
 
 
 @dataclass
-class SwiftConfig:
+class VerlConfig:
 
-    swift_type: str = field(default=None)
+    verl_type: str = field(default=None)
 
     model_key_mapping: Optional[Union[dict, ModelKeys]] = field(default=None)
 
@@ -85,9 +85,9 @@ class SwiftConfig:
 
         loaded_attributes = cls.from_json_file(config_file)
 
-        from .mapping import SWIFT_MAPPING
-        assert loaded_attributes.get('swift_type', '') in SWIFT_MAPPING
-        config = SWIFT_MAPPING[loaded_attributes['swift_type']][0](**kwargs)
+        from .mapping import VERL_MAPPING
+        assert loaded_attributes.get('verl_type', '') in VERL_MAPPING
+        config = VERL_MAPPING[loaded_attributes['verl_type']][0](**kwargs)
 
         for key, value in loaded_attributes.items():
             if hasattr(config, key):
@@ -111,12 +111,12 @@ class SwiftConfig:
 
 
 @dataclass
-class SwiftOutput:
+class VerlOutput:
     """The output class returned by all tuners.
 
     Args:
         model (`torch.nn.Module`): The model wrapped
-        config (`SwiftConfig`): The swift config instance.
+        config (`VerlConfig`): The verl config instance.
         state_dict_callback (`FunctionType`): A callback returned by the tuner
             which is used to get the tuner's state dict among the model's state dict.
             This callback should receive a state dict, and returns a created state dict.
@@ -138,7 +138,7 @@ class SwiftOutput:
         load_callback (`FunctionType`): A callback used to load trained model.
     """
     model: torch.nn.Module = None
-    config: SwiftConfig = None
+    config: VerlConfig = None
     state_dict_callback: FunctionType = None
     save_callback: FunctionType = None
     mark_trainable_callback: FunctionType = None
@@ -277,12 +277,12 @@ class OffloadHelper:
         shutil.rmtree(sub_folder, ignore_errors=True)
 
 
-class SwiftAdapter:
+class VerlAdapter:
 
     offload_helper = None
 
     @staticmethod
-    def prepare_model(model: torch.nn.Module, config: SwiftConfig, adapter_name: str) -> SwiftOutput:
+    def prepare_model(model: torch.nn.Module, config: VerlConfig, adapter_name: str) -> VerlOutput:
         raise NotImplementedError
 
     @staticmethod
@@ -294,9 +294,9 @@ class SwiftAdapter:
         if not isinstance(module, torch.nn.Module):
             return
         if activate:
-            SwiftAdapter.load(module, adapter_name, module_key)
+            VerlAdapter.load(module, adapter_name, module_key)
         else:
-            SwiftAdapter.offload(module, adapter_name, module_key, offload=offload)
+            VerlAdapter.offload(module, adapter_name, module_key, offload=offload)
 
     @staticmethod
     def offload(module: torch.nn.Module, adapter_name, module_key, offload: str):
@@ -311,9 +311,9 @@ class SwiftAdapter:
                 module.to('cpu')
         elif offload == 'meta':
             if str(device) != 'meta':
-                if SwiftAdapter.offload_helper is None:
-                    SwiftAdapter.offload_helper = OffloadHelper()
-                SwiftAdapter.offload_helper.offload_disk(module, adapter_name=adapter_name, module_key=module_key)
+                if VerlAdapter.offload_helper is None:
+                    VerlAdapter.offload_helper = OffloadHelper()
+                VerlAdapter.offload_helper.offload_disk(module, adapter_name=adapter_name, module_key=module_key)
                 module.to('meta')
         else:
             raise NotImplementedError
@@ -328,7 +328,7 @@ class SwiftAdapter:
             module.to(module.origin_device)
             delattr(module, 'origin_device')
         elif str(device) == 'meta':
-            SwiftAdapter.offload_helper.load_disk(module, adapter_name=adapter_name, module_key=module_key)
+            VerlAdapter.offload_helper.load_disk(module, adapter_name=adapter_name, module_key=module_key)
             module.to(module.origin_device)
             delattr(module, 'origin_device')
 
@@ -362,7 +362,7 @@ class ModulesToSaveWrapper(ActivationMixin, _ModulesToSaveWrapper):
     def __init__(self, *args, module_key, **kwargs):
         super(ModulesToSaveWrapper, self).__init__(module_key)
         super(ActivationMixin, self).__init__(*args, **kwargs)
-        SwiftAdapter.save_memory(self.original_module, 'original_module', self.module_key, False, offload='cpu')
+        VerlAdapter.save_memory(self.original_module, 'original_module', self.module_key, False, offload='cpu')
 
     @property
     def active_adapter(self):
@@ -378,24 +378,24 @@ class ModulesToSaveWrapper(ActivationMixin, _ModulesToSaveWrapper):
             raise ValueError(f'Adapter {adapter_name} not found in {self.modules_to_save.keys()}')
         self.modules_to_save[adapter_name].requires_grad_(True)
         self.set_activation(adapter_name, True)
-        SwiftAdapter.save_memory(self.modules_to_save[adapter_name], adapter_name, self.module_key, True)
-        SwiftAdapter.save_memory(self.original_module, 'original_module', self.module_key, False, offload=offload)
+        VerlAdapter.save_memory(self.modules_to_save[adapter_name], adapter_name, self.module_key, True)
+        VerlAdapter.save_memory(self.original_module, 'original_module', self.module_key, False, offload=offload)
 
     def deactivate_adapter(self, adapter_name: str, offload: str = None):
         if adapter_name in self.modules_to_save and self.unique_thread:
             self.modules_to_save[adapter_name].requires_grad_(False)
         self.set_activation(adapter_name, False)
-        SwiftAdapter.save_memory(
+        VerlAdapter.save_memory(
             self.modules_to_save[adapter_name], adapter_name, self.module_key, False, offload=offload)
         if not self.get_activated_adapters():
-            SwiftAdapter.save_memory(self.original_module, 'original_module', self.module_key, True)
+            VerlAdapter.save_memory(self.original_module, 'original_module', self.module_key, True)
 
     def enable_adapters(self, enabled: bool):
         super().enable_adapters(enabled)
         if not enabled:
-            SwiftAdapter.save_memory(self.original_module, 'original_module', self.module_key, False, offload='meta')
+            VerlAdapter.save_memory(self.original_module, 'original_module', self.module_key, False, offload='meta')
         else:
-            SwiftAdapter.save_memory(self.original_module, 'original_module', self.module_key, True)
+            VerlAdapter.save_memory(self.original_module, 'original_module', self.module_key, True)
 
 
 def set_adapter(model, adapter_name, activate, offload):
@@ -422,12 +422,12 @@ def set_trainable(model, adapter_name):
                 setattr(parent, target_name, new_module)
 
 
-def swift_to_peft_format(ckpt_dir: str, output_dir: str) -> str:
-    if 'default' in os.listdir(ckpt_dir):  # swift_backend
-        from swift import Swift
-        Swift.save_to_peft_format(ckpt_dir, output_dir)
+def verl_to_peft_format(ckpt_dir: str, output_dir: str) -> str:
+    if 'default' in os.listdir(ckpt_dir):  # verl_backend
+        from verl import Verl
+        Verl.save_to_peft_format(ckpt_dir, output_dir)
         ckpt_dir = output_dir
-        logger.info(f'Converting the swift format checkpoint to peft format, and saving it to: `{output_dir}`')
+        logger.info(f'Converting the verl format checkpoint to peft format, and saving it to: `{output_dir}`')
     else:
         logger.info('The format of the checkpoint is already in peft format.')
     return ckpt_dir

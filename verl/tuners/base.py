@@ -19,22 +19,22 @@ from peft.utils.other import SAFETENSORS_WEIGHTS_NAME, WEIGHTS_NAME
 from torch import nn
 from transformers import Trainer
 
-from swift.utils.constants import DEFAULT_ADAPTER, SWIFT_TYPE_KEY
-from swift.utils.logger import get_logger
+from verl.utils.constants import DEFAULT_ADAPTER, VERL_TYPE_KEY
+from verl.utils.logger import get_logger
 from ..utils.torch_utils import get_device_count
-from .mapping import SwiftTuners
+from .mapping import VerlTuners
 from .peft import PeftConfig, PeftModel, get_peft_model
-from .utils import SwiftConfig, SwiftOutput
+from .utils import VerlConfig, VerlOutput
 
 logger = get_logger()
 
 
-class SwiftModel(nn.Module):
-    """The Swift wrapper model.
+class VerlModel(nn.Module):
+    """The Verl wrapper model.
 
     Args:
-        model (`Union[nn.Module, 'SwiftModel']`) A module to be tuned by Swift.
-        config (`Union[SwiftConfig, Dict[str, SwiftConfig]]`) A config or a dict of {adapter_name: SwiftConfig}.
+        model (`Union[nn.Module, 'VerlModel']`) A module to be tuned by Verl.
+        config (`Union[VerlConfig, Dict[str, VerlConfig]]`) A config or a dict of {adapter_name: VerlConfig}.
             If it's a config class, the adapter_name will be `default`
         extra_state_keys (`List[str]`, `optional`) A list of regex to match the extra state keys to be saved.
         inference_mode (bool, `optional`): Load model at inference mode, default False.
@@ -43,15 +43,15 @@ class SwiftModel(nn.Module):
     EXTRA_STATE_DIR = 'extra_states'
 
     def __init__(self,
-                 model: Union[nn.Module, 'SwiftModel'],
-                 config: Union[SwiftConfig, Dict[str, SwiftConfig]],
+                 model: Union[nn.Module, 'VerlModel'],
+                 config: Union[VerlConfig, Dict[str, VerlConfig]],
                  extra_state_keys: List[str] = None,
                  inference_mode: bool = False,
                  **kwargs):
         super().__init__()
         self.adapters = {}
         self.active_adapters = set()
-        if isinstance(model, SwiftModel):
+        if isinstance(model, VerlModel):
             self.adapters = model.adapters
             extra_state_keys = extra_state_keys or []
             extra_state_keys.extend(model.extra_state_keys)
@@ -60,7 +60,7 @@ class SwiftModel(nn.Module):
 
         self.base_model = model
         new_adapters = []
-        if isinstance(config, SwiftConfig):
+        if isinstance(config, VerlConfig):
             if DEFAULT_ADAPTER not in self.adapters:
                 all_parts = self._deactivate_all_parts()
                 self.adapters[DEFAULT_ADAPTER] = self._prepare_model(model, config, DEFAULT_ADAPTER)
@@ -72,7 +72,7 @@ class SwiftModel(nn.Module):
             else:
                 logger.warn(f'Adapter {DEFAULT_ADAPTER} has been patched, skip.')
         elif isinstance(config, dict):
-            assert (all(isinstance(c, SwiftConfig) for c in config.values()))
+            assert (all(isinstance(c, VerlConfig) for c in config.values()))
             for adapter_name, _config in config.items():
                 if adapter_name not in self.adapters:
                     all_parts = self._deactivate_all_parts()
@@ -117,14 +117,14 @@ class SwiftModel(nn.Module):
         deactivated = []
         for adapter in self.active_adapters:
             output = self.adapters[adapter]
-            if output.config.swift_type == SwiftTuners.PART:
+            if output.config.verl_type == VerlTuners.PART:
                 deactivated.append(adapter)
                 self.deactivate_adapter(adapter)
         return deactivated
 
     def load_state_dict(self, state_dict, strict=True, adapter_name: str = None):
         if adapter_name is not None:
-            output: SwiftOutput = self.adapters[adapter_name]
+            output: VerlOutput = self.adapters[adapter_name]
             if getattr(output.config, 'modules_to_save', None):
                 for key, value in copy(state_dict).items():
                     for module_name in output.config.modules_to_save:
@@ -295,7 +295,7 @@ class SwiftModel(nn.Module):
 
     @classmethod
     def from_pretrained(cls,
-                        model: Union[nn.Module, 'SwiftModel'],
+                        model: Union[nn.Module, 'VerlModel'],
                         model_id: str = None,
                         adapter_name: Union[str, List[str], Dict[str, str]] = None,
                         inference_mode: bool = True,
@@ -304,8 +304,8 @@ class SwiftModel(nn.Module):
         """Load a set of tuners and corresponding weights by a model_id.
 
         Args:
-            model (`Union[torch.nn.Module, 'SwiftModel']`): The model to be tuned,
-                if the model is already a `SwiftModel` it will be un-wrapped and re-wrapped..
+            model (`Union[torch.nn.Module, 'VerlModel']`): The model to be tuned,
+                if the model is already a `VerlModel` it will be un-wrapped and re-wrapped..
             model_id (`str`): The model_id or a local model dir of tuners to use to tune the model.
             adapter_name (`Union[str, List[str], Dict[str, str]]`): The adapter_names saved in the model repo to load.
                 Default `None`, means load all tuners saved in the model_id
@@ -315,7 +315,7 @@ class SwiftModel(nn.Module):
                 extra_state_keys (`List[str]`, `optional`) A list of regex to match the extra state keys to be saved.
                 Other parameters will be passed to the device_map.
         Returns:
-            The `SwiftModel` instance.
+            The `VerlModel` instance.
         """
         adapters = {}
         model_dir = model_id
@@ -346,18 +346,18 @@ class SwiftModel(nn.Module):
             with open(config_file, 'r', encoding='utf-8') as file:
                 json_object = json.load(file)
 
-            if SWIFT_TYPE_KEY not in json_object:
+            if VERL_TYPE_KEY not in json_object:
                 raise ValueError('Mixed using with peft is not allowed now.')
             else:
                 key = _name if not isinstance(adapter_name, dict) else adapter_name[_name]
-                adapters[key] = SwiftConfig.from_pretrained(sub_folder)
+                adapters[key] = VerlConfig.from_pretrained(sub_folder)
 
-        self = SwiftModel(model, adapters, extra_state_keys, inference_mode, **kwargs)
+        self = VerlModel(model, adapters, extra_state_keys, inference_mode, **kwargs)
         for _name in adapter_name if isinstance(adapter_name,
                                                 list) else [adapter_name] \
                 if isinstance(adapter_name, str) else adapter_name.keys():
             _adapter = _name if not isinstance(adapter_name, dict) else adapter_name[_name]
-            output: SwiftOutput = self.adapters[_adapter]
+            output: VerlOutput = self.adapters[_adapter]
             sub_folder = os.path.join(model_dir, _name)
             if output.load_callback:
                 output.load_callback(self, sub_folder, _adapter)
@@ -377,13 +377,13 @@ class SwiftModel(nn.Module):
     def _prepare_model(
         cls,
         model: nn.Module,
-        config: SwiftConfig,
+        config: VerlConfig,
         adapter_name: str,
     ):
-        assert (hasattr(config, SWIFT_TYPE_KEY))
-        from .mapping import SWIFT_MAPPING
+        assert (hasattr(config, VERL_TYPE_KEY))
+        from .mapping import VERL_MAPPING
 
-        adapter_cls = SWIFT_MAPPING[config.swift_type][1]
+        adapter_cls = VERL_MAPPING[config.verl_type][1]
         if adapter_cls.has_additional_modules() and not getattr(model, 'model_frozen', False):
             for _, p in model.named_parameters():
                 p.requires_grad = False
@@ -419,11 +419,11 @@ class SwiftModel(nn.Module):
             lines.append(f'{training_procedure_heading}\n{training_config_text}')
 
         framework_block_heading = '### Framework versions\n'
-        from swift.version import __version__
+        from verl.version import __version__
         if framework_block_heading in lines:
-            lines.insert(lines.index(framework_block_heading) + 2, f'- SWIFT {__version__}\n')
+            lines.insert(lines.index(framework_block_heading) + 2, f'- VERL {__version__}\n')
         else:
-            lines.append(f'{framework_block_heading}\n\n- SWIFT {__version__}\n')
+            lines.append(f'{framework_block_heading}\n\n- VERL {__version__}\n')
 
         base_model_heading = '### Base model information\n'
         lines.append(f'{base_model_heading}\n\n- BaseModel Class {self.base_model.__class__.__name__}\n')
@@ -484,7 +484,7 @@ class SwiftModel(nn.Module):
                 The method, should be one of ["total", "frequency"], to use to get the magnitude of the sign values.
                 Should be used with [`ties`, `ties_svd`, `dare_ties`, `dare_ties_svd`]
         """
-        from swift.tuners.lora import LoraModel
+        from verl.tuners.lora import LoraModel
         lora_model = LoraModel(self.model, None, '')
         lora_model.peft_config = {key: value.config for key, value in self.adapters.items()}
         from peft.tuners.lora import LoraLayer
@@ -506,16 +506,16 @@ class SwiftModel(nn.Module):
         )
 
         def state_dict_callback(state_dict, adapter_name, cfg):
-            from swift.tuners.lora_layers import lora_state_dict
+            from verl.tuners.lora_layers import lora_state_dict
             return lora_state_dict(state_dict, adapter_name, cfg.bias)
 
         def mark_trainable_callback(model, cfg):
-            from swift.tuners.lora_layers import mark_lora_as_trainable
+            from verl.tuners.lora_layers import mark_lora_as_trainable
             mark_lora_as_trainable(model, adapter_name, cfg.bias)
 
         cfg = lora_model.peft_config[adapter_name]
         cfg.has_additional_modules = True
-        self.adapters[adapter_name] = SwiftOutput(
+        self.adapters[adapter_name] = VerlOutput(
             config=cfg,
             state_dict_callback=partial(state_dict_callback, cfg=cfg),
             mark_trainable_callback=partial(mark_trainable_callback, cfg=cfg),
@@ -559,7 +559,7 @@ class SwiftModel(nn.Module):
             if adapter_names is not None and adapter_name not in adapter_names:
                 continue
 
-            save_to_peft = peft_format and output.config.swift_type == SwiftTuners.LORA
+            save_to_peft = peft_format and output.config.verl_type == VerlTuners.LORA
             save_to_peft = save_to_peft and output.config.can_be_saved_to_peft()
             if peft_format and not save_to_peft:
                 logger.error('You are using additional lora parameters, which is not compatible with peft,'
@@ -649,8 +649,8 @@ class SwiftModel(nn.Module):
             logger.warning(f'{adapter_name} not in adapters: {self.adapters.keys()}')
             return
 
-        from .mapping import SWIFT_MAPPING
-        SWIFT_MAPPING[self.adapters[adapter_name].config.swift_type][1]\
+        from .mapping import VERL_MAPPING
+        VERL_MAPPING[self.adapters[adapter_name].config.verl_type][1]\
             .activate_adapter(self.base_model, adapter_name, True)
         self.active_adapters = self.active_adapters | {adapter_name}
 
@@ -665,8 +665,8 @@ class SwiftModel(nn.Module):
             logger.warning(f'{adapter_name} not in adapters: {self.adapters.keys()}')
             return
 
-        from .mapping import SWIFT_MAPPING
-        SWIFT_MAPPING[self.adapters[adapter_name].config.swift_type][1]\
+        from .mapping import VERL_MAPPING
+        VERL_MAPPING[self.adapters[adapter_name].config.verl_type][1]\
             .activate_adapter(self.base_model, adapter_name, False, offload=offload)
         self.active_adapters = self.active_adapters - {adapter_name}
 
@@ -692,45 +692,45 @@ class SwiftModel(nn.Module):
                'GiB.'
 
 
-class Swift:
-    """The Wrapper to use both Peft and Swift tuners."""
+class Verl:
+    """The Wrapper to use both Peft and Verl tuners."""
 
     @staticmethod
-    def prepare_model(model: Union[nn.Module, SwiftModel], config: Union[SwiftConfig, PeftConfig,
-                                                                         Dict[str, SwiftConfig]], **kwargs):
+    def prepare_model(model: Union[nn.Module, VerlModel], config: Union[VerlConfig, PeftConfig,
+                                                                         Dict[str, VerlConfig]], **kwargs):
         """Prepare a model by the input config.
 
         Args:
-            model(`Union[nn.Module, 'SwiftModel']`): The model to be tuned.
-            config(`Union[SwiftConfig, PeftConfig, Dict[str, SwiftConfig]]`): The config or config dict, can be either
-                SwiftConfigs or PeftConfigs
+            model(`Union[nn.Module, 'VerlModel']`): The model to be tuned.
+            config(`Union[VerlConfig, PeftConfig, Dict[str, VerlConfig]]`): The config or config dict, can be either
+                VerlConfigs or PeftConfigs
             **kwargs:
-                Extra kwargs needed by SwiftModel or PeftModel.
+                Extra kwargs needed by VerlModel or PeftModel.
         Returns:
-            The model wrapped by SwiftModel or PeftModel.
+            The model wrapped by VerlModel or PeftModel.
         """
 
-        if isinstance(config, (SwiftConfig, dict)):
-            return SwiftModel(model, config, **kwargs)
+        if isinstance(config, (VerlConfig, dict)):
+            return VerlModel(model, config, **kwargs)
         else:
             return get_peft_model(model, config, **kwargs)
 
     @staticmethod
-    def merge_and_unload(model: Union[PeftModel, SwiftModel], **kwargs):
+    def merge_and_unload(model: Union[PeftModel, VerlModel], **kwargs):
         """Merge tuners into the base model and unload them.
 
         Args:
-            model(`Union[PeftModel, SwiftModel]`): The model instance with tuners
+            model(`Union[PeftModel, VerlModel]`): The model instance with tuners
             kwargs:
-                adapter_name(`Union[str, List[str]]`): The adapter_name to unload, only supported in swift tuners.
+                adapter_name(`Union[str, List[str]]`): The adapter_name to unload, only supported in verl tuners.
 
         """
         from peft import PeftModel as _PeftModel
         if isinstance(model, _PeftModel):
             model.merge_and_unload()
-        elif isinstance(model, SwiftModel):
-            from swift import LoRAConfig
-            from swift.tuners import LoRA
+        elif isinstance(model, VerlModel):
+            from verl import LoRAConfig
+            from verl.tuners import LoRA
             adapter_name = kwargs.get('adapter_name', None)
             if isinstance(adapter_name, str):
                 adapter_name = [adapter_name]
@@ -740,15 +740,15 @@ class Swift:
 
     @staticmethod
     @contextmanager
-    def grpo_context(model: Union[SwiftModel, torch.nn.Module], processor):
+    def grpo_context(model: Union[VerlModel, torch.nn.Module], processor):
         # Save the model and temporarily modify model.model_dir.
-        if not isinstance(model, SwiftModel):
+        if not isinstance(model, VerlModel):
             yield
             return
         else:
             assert len(model.adapters) == 1
             adapter = list(model.adapters.values())[0]
-            if adapter.config.swift_type == SwiftTuners.LLAMAPRO:
+            if adapter.config.verl_type == VerlTuners.LLAMAPRO:
                 from modelscope.hub.utils.utils import get_cache_dir
                 temp_dir = tempfile.mkdtemp(dir=get_cache_dir())
                 model_dir = model.model_dir
@@ -759,16 +759,16 @@ class Swift:
                 processor.save_pretrained(temp_dir)
                 model.model_dir = temp_dir
             yield
-            if adapter.config.swift_type == SwiftTuners.LLAMAPRO:
+            if adapter.config.verl_type == VerlTuners.LLAMAPRO:
                 model.model_dir = model_dir
                 shutil.rmtree(temp_dir)
 
     @staticmethod
-    def merge(model: Union[PeftModel, SwiftModel], **kwargs):
+    def merge(model: Union[PeftModel, VerlModel], **kwargs):
         """Merge tuners into the base model, will not unload them.
 
         Args:
-            model(`Union[PeftModel, SwiftModel]`): The model instance with tuners
+            model(`Union[PeftModel, VerlModel]`): The model instance with tuners
         """
         from .lora_layers import LoraLayer, LoRALayer
         for sub_module in model.modules():
@@ -776,11 +776,11 @@ class Swift:
                 sub_module.merge(**kwargs)
 
     @staticmethod
-    def unmerge(model: Union[PeftModel, SwiftModel], **kwargs):
+    def unmerge(model: Union[PeftModel, VerlModel], **kwargs):
         """Unmerge tuners from the base model
 
         Args:
-            model(`Union[PeftModel, SwiftModel]`): The model instance with tuners
+            model(`Union[PeftModel, VerlModel]`): The model instance with tuners
         """
         from .lora_layers import LoraLayer, LoRALayer
         for sub_module in model.modules():
@@ -789,15 +789,15 @@ class Swift:
 
     @staticmethod
     def save_to_peft_format(ckpt_dir: str, output_dir: str) -> None:
-        """Save swift format to peft format
+        """Save verl format to peft format
 
         Args:
-            ckpt_dir(`str`): Original swift output dir
+            ckpt_dir(`str`): Original verl output dir
             output_dir(`str`): Converted peft format dir
         """
         assert ckpt_dir and output_dir, 'Please pass in valid ckpt_dir and output_dir.'
         assert os.path.exists(ckpt_dir), f'ckpt_dir: {ckpt_dir} must exists in local disk.'
-        if os.path.exists(os.path.join(ckpt_dir, SwiftModel.EXTRA_STATE_DIR)):
+        if os.path.exists(os.path.join(ckpt_dir, VerlModel.EXTRA_STATE_DIR)):
             raise AssertionError('Cannot transfer to peft format, because you are additional state dicts.')
 
         adapter_names = [
@@ -805,11 +805,11 @@ class Swift:
         ]
 
         def has_custom_content(_json):
-            if _json.get('swift_type', _json.get('peft_type')) != SwiftTuners.LORA:
+            if _json.get('verl_type', _json.get('peft_type')) != VerlTuners.LORA:
                 logger.warn('Only LoRA can be converted to peft format')
                 return True
 
-            from swift import LoRAConfig
+            from verl import LoRAConfig
             return not LoRAConfig(**_json).can_be_saved_to_peft()
 
         for adapter in adapter_names:
@@ -825,7 +825,7 @@ class Swift:
 
         for adapter in adapter_names:
             safe_serialization = os.path.isfile(os.path.join(output_dir, adapter, SAFETENSORS_WEIGHTS_NAME))
-            state_dict = SwiftModel.load_state_file(os.path.join(output_dir, adapter))
+            state_dict = VerlModel.load_state_file(os.path.join(output_dir, adapter))
             new_state_dict = {}
             for key, value in state_dict.items():
                 if not key.startswith('base_model.model.'):
@@ -837,8 +837,8 @@ class Swift:
                 key = key.replace(f'lora_magnitude_vector.{adapter}', 'lora_magnitude_vector')
                 new_state_dict[key] = value
             state_dict = new_state_dict
-            SwiftModel._save_state_dict(state_dict, os.path.join(output_dir, adapter), safe_serialization)
-            from swift import LoRAConfig
+            VerlModel._save_state_dict(state_dict, os.path.join(output_dir, adapter), safe_serialization)
+            from verl import LoRAConfig
             with open(os.path.join(output_dir, adapter, CONFIG_NAME), encoding='utf-8') as f:
                 _json = json.load(f)
                 peft_config = LoRAConfig(**_json).to_peft_config()
@@ -846,13 +846,13 @@ class Swift:
 
         if 'default' in adapter_names:
             shutil.move(os.path.join(output_dir, 'default', CONFIG_NAME), os.path.join(output_dir, CONFIG_NAME))
-            state_dict = SwiftModel.load_state_file(os.path.join(output_dir, 'default'))
+            state_dict = VerlModel.load_state_file(os.path.join(output_dir, 'default'))
             safe_serialization = os.path.isfile(os.path.join(output_dir, 'default', SAFETENSORS_WEIGHTS_NAME))
-            SwiftModel._save_state_dict(state_dict, output_dir, safe_serialization)
+            VerlModel._save_state_dict(state_dict, output_dir, safe_serialization)
             shutil.rmtree(os.path.join(output_dir, 'default'))
 
     @staticmethod
-    def from_pretrained(model: Union[nn.Module, SwiftModel, PeftModel],
+    def from_pretrained(model: Union[nn.Module, VerlModel, PeftModel],
                         model_id: str = None,
                         adapter_name: Union[str, List[str], Dict[str, str]] = None,
                         revision: str = None,
@@ -860,14 +860,14 @@ class Swift:
         """Prepare a model by a model_id in the ModelScope hub or a local dir.
 
         Args:
-            model(`Union[nn.Module, 'SwiftModel']`): The model to be tuned.
+            model(`Union[nn.Module, 'VerlModel']`): The model to be tuned.
             model_id(`str`): The model id of the modelhub or a local dir containing the configs/weights.
             adapter_name(`str`, `optional`): The adapter_name to use.
             revision(`str`, `optional`): The model revision if the model_id is a model id of the modelhub.
             **kwargs:
-                Extra kwargs needed by ``SwiftModel.from_pretrained`` or ``PeftModel.from_pretrained``.
+                Extra kwargs needed by ``VerlModel.from_pretrained`` or ``PeftModel.from_pretrained``.
         Returns:
-            The model wrapped by SwiftModel or PeftModel.
+            The model wrapped by VerlModel or PeftModel.
         """
         if not os.path.exists(model_id):
             model_id = snapshot_download(model_id, revision=revision)
@@ -875,7 +875,7 @@ class Swift:
         if os.path.exists(os.path.join(model_id, CONFIG_NAME)):
             with open(os.path.join(model_id, CONFIG_NAME), 'r', encoding='utf-8') as f:
                 _json = json.load(f)
-            is_peft_model = SWIFT_TYPE_KEY not in _json
+            is_peft_model = VERL_TYPE_KEY not in _json
 
         _name = adapter_name if isinstance(
             adapter_name, str) or adapter_name is None else adapter_name[0] \
@@ -884,7 +884,7 @@ class Swift:
         if os.path.exists(os.path.join(model_id, _name, CONFIG_NAME)):
             with open(os.path.join(model_id, _name, CONFIG_NAME), 'r', encoding='utf-8') as f:
                 _json = json.load(f)
-            is_peft_model = SWIFT_TYPE_KEY not in _json and 'extra_state_keys' not in _json
+            is_peft_model = VERL_TYPE_KEY not in _json and 'extra_state_keys' not in _json
         if is_peft_model:
 
             def load_peft_model(_model, _adapter_name, _new_name=None):
@@ -923,4 +923,4 @@ class Swift:
                     peft_model = load_peft_model(peft_model, key, value)
             return peft_model
         else:
-            return SwiftModel.from_pretrained(model, model_id, revision=revision, adapter_name=adapter_name, **kwargs)
+            return VerlModel.from_pretrained(model, model_id, revision=revision, adapter_name=adapter_name, **kwargs)

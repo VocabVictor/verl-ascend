@@ -8,14 +8,14 @@ from typing import Dict, Optional
 import torch
 from torch import nn
 
-from swift.utils import get_logger
-from .utils import ActivationMixin, SwiftAdapter, SwiftConfig, SwiftOutput
+from verl.utils import get_logger
+from .utils import ActivationMixin, VerlAdapter, VerlConfig, VerlOutput
 
 logger = get_logger()
 
 
 @dataclass
-class PartConfig(SwiftConfig):
+class PartConfig(VerlConfig):
     """
     Freeze the model and train a part of it.
 
@@ -26,11 +26,11 @@ class PartConfig(SwiftConfig):
     target_modules: Optional[str] = None
 
     def __post_init__(self):
-        from .mapping import SwiftTuners
-        self.swift_type = SwiftTuners.PART
+        from .mapping import VerlTuners
+        self.verl_type = VerlTuners.PART
 
 
-class Part(SwiftAdapter):
+class Part(VerlAdapter):
 
     @staticmethod
     def target_module_matched(module_key: str, config: PartConfig):
@@ -103,7 +103,7 @@ class Part(SwiftAdapter):
                                 new_state_dict[param_name] = state_dict[param_name]
             return new_state_dict
 
-        return SwiftOutput(
+        return VerlOutput(
             config=config,
             state_dict_callback=state_dict_callback,
             mark_trainable_callback=mark_trainable_callback,
@@ -116,4 +116,4 @@ class Part(SwiftAdapter):
             sub_module: nn.Module = module.get_submodule(name)
             if re.fullmatch(f'.*_part_{adapter_name}$', name):
                 sub_module.activated = activate
-                SwiftAdapter.save_memory(sub_module, adapter_name, name, activate, offload)
+                VerlAdapter.save_memory(sub_module, adapter_name, name, activate, offload)

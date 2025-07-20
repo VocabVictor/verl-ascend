@@ -6,9 +6,9 @@ from typing import List, Tuple, Union
 
 import torch.nn as nn
 
-from swift.tuners.lora import lora_state_dict, mark_lora_as_trainable
-from swift.tuners.lora_layers import LoraModel
-from .. import LoRA, LoRAConfig, SwiftOutput
+from verl.tuners.lora import lora_state_dict, mark_lora_as_trainable
+from verl.tuners.lora_layers import LoraModel
+from .. import LoRA, LoRAConfig, VerlOutput
 
 
 class LongLoRAModelType:
@@ -40,8 +40,8 @@ class LongLoRAConfig(LoRAConfig):
     group_size_ratio: float = field(default=0.25, metadata={'help': 'The S2 attention group ratio'})
 
     def __post_init__(self):
-        from swift.tuners.mapping import SwiftTuners
-        self.swift_type = SwiftTuners.LONGLORA
+        from verl.tuners.mapping import VerlTuners
+        self.verl_type = VerlTuners.LONGLORA
 
 
 class LongLoRA(LoRA):
@@ -72,7 +72,7 @@ class LongLoRA(LoRA):
             # only support code base from transformers
             model.config.group_size_ratio = config.group_size_ratio
 
-        return SwiftOutput(
+        return VerlOutput(
             config=config, state_dict_callback=state_dict_callback, mark_trainable_callback=mark_trainable_callback)
 
 

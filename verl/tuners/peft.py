@@ -23,7 +23,7 @@ from peft.tuners.adalora import AdaLoraModel, RankAllocator
 from peft.tuners.lora import Embedding
 from transformers import Trainer
 
-from swift.utils import get_logger
+from verl.utils import get_logger
 
 try:
     from peft import FourierFTModel
@@ -325,7 +325,7 @@ def hot_patch_peft_module():
     PeftConfigMixin.from_pretrained_origin = PeftConfigMixin.from_pretrained
     PeftConfigMixin.from_pretrained = LoraConfig.from_pretrained
 
-    # Compatible with SwiftModel
+    # Compatible with VerlModel
     def dummy_function(*args, **kwargs):
         logger.warn(f'The function {kwargs["func"]} has no effects, consider using other functions.')
 

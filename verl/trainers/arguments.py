@@ -8,7 +8,7 @@ from typing import List, Literal, Optional, Union
 from transformers.training_args import TrainingArguments as HfTrainingArguments
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments as HfSeq2SeqTrainingArguments
 
-from swift.utils import get_dist_setting, get_logger, is_liger_available, is_mp, use_torchacc
+from verl.utils import get_dist_setting, get_logger, is_liger_available, is_mp, use_torchacc
 from .optimizers.galore import GaLoreConfig
 
 logger = get_logger()
@@ -89,7 +89,7 @@ class TrainArgumentsMixin:
             raise ValueError('liger_kernel does not support device_map. '
                              'Please use DDP/DeepSpeed for multi-GPU training.')
 
-        from swift.llm.argument.base_args.model_args import ModelArguments
+        from verl.llm.argument.base_args.model_args import ModelArguments
         if self.optimizer is None and (self.vit_lr is not None or self.aligner_lr is not None):
             self.optimizer = 'multimodal'
         if use_torchacc():
@@ -131,7 +131,7 @@ class RLHFArgumentsMixin:
 
 
 @dataclass
-class SwiftArgumentsMixin(RLHFArgumentsMixin, TrainArgumentsMixin):
+class VerlArgumentsMixin(RLHFArgumentsMixin, TrainArgumentsMixin):
     # Value copied from TrainArguments
     train_type: Optional[str] = None
     local_repo_path: Optional[str] = None
@@ -172,7 +172,7 @@ class GRPOArgumentsMixin:
     vllm_server_timeout: float = 240.0
     vllm_client = None  # Not required to set, used for client instantiation
 
-    # reward function args, see details in swift/plugin/orm.py
+    # reward function args, see details in verl/plugin/orm.py
     # cosine reward, https://arxiv.org/abs/2502.03373
     cosine_min_len_value_wrong: float = -0.5  # r^w_0 in paper, Reward for wrong answers with zero completion length.
     cosine_max_len_value_wrong: float = 0.0  # r^w_L in paper, Reward for wrong answers with max completion length.
@@ -224,10 +224,10 @@ class GRPOArgumentsMixin:
 
 
 @dataclass
-class TrainingArguments(SwiftArgumentsMixin, HfTrainingArguments):
+class TrainingArguments(VerlArgumentsMixin, HfTrainingArguments):
     pass
 
 
 @dataclass
-class Seq2SeqTrainingArguments(SwiftArgumentsMixin, HfSeq2SeqTrainingArguments):
+class Seq2SeqTrainingArguments(VerlArgumentsMixin, HfSeq2SeqTrainingArguments):
     pass

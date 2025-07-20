@@ -18,10 +18,13 @@ from pathlib import Path
 
 from setuptools import find_packages, setup
 
-version_folder = os.path.dirname(os.path.join(os.path.abspath(__file__)))
+version_file = 'verl/version.py'
 
-with open(os.path.join(version_folder, "verl/version/version")) as f:
-    __version__ = f.read().strip()
+def get_version():
+    version_vars = {}
+    with open(version_file, 'r', encoding='utf-8') as f:
+        exec(f.read(), version_vars)
+    return version_vars['__version__']
 
 install_requires = [
     "accelerate",
@@ -76,7 +79,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="verl",
-    version=__version__,
+    version=get_version(),
     package_dir={"": "."},
     packages=find_packages(where="."),
     url="https://github.com/volcengine/verl",
@@ -87,15 +90,15 @@ setup(
     install_requires=install_requires,
     extras_require=extras_require,
     package_data={
-        "": ["version/*"],
-        "verl": ["trainer/config/*.yaml"],
+        "": ["*.h", "*.cpp", "*.cu"],
+        "verl": ["version.py", "llm/ds_config/*.json"],
     },
     include_package_data=True,
     long_description=long_description,
     long_description_content_type="text/markdown",
     entry_points={
         'console_scripts': [
-            'verl=verl.cli.main:main',
+            'verl=verl.cli.main:cli_main',
         ],
     },
 )

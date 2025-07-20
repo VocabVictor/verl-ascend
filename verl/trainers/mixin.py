@@ -31,13 +31,13 @@ from transformers.trainer import TrainerCallback
 from transformers.trainer_utils import EvalPrediction, IntervalStrategy
 from transformers.utils import is_torch_npu_available
 
-from swift.hub import get_hub
-from swift.llm import BatchSamplerShard, DataLoaderDispatcher, DataLoaderShard, Template
-from swift.llm.utils import update_generation_config_eos_token
-from swift.plugin import MeanMetric, compute_acc, extra_tuners
-from swift.tuners import SwiftModel
-from swift.utils import get_logger, is_dist, is_mp, is_mp_ddp, ms_logger_context, seed_worker, use_torchacc
-from swift.utils.torchacc_utils import ta_trim_graph
+from verl.hub import get_hub
+from verl.llm import BatchSamplerShard, DataLoaderDispatcher, DataLoaderShard, Template
+from verl.llm.utils import update_generation_config_eos_token
+from verl.plugin import MeanMetric, compute_acc, extra_tuners
+from verl.tuners import VerlModel
+from verl.utils import get_logger, is_dist, is_mp, is_mp_ddp, ms_logger_context, seed_worker, use_torchacc
+from verl.utils.torchacc_utils import ta_trim_graph
 from ..utils.torch_utils import get_device_count
 from .arguments import TrainingArguments
 from .utils import can_return_loss, find_labels, get_function, is_instance_of_ms_model
@@ -50,7 +50,7 @@ except (ImportError, RuntimeError):
 logger = get_logger()
 
 
-class SwiftMixin:
+class VerlMixin:
 
     def __init__(self,
                  model: Union[PreTrainedModel, Module] = None,
@@ -75,7 +75,7 @@ class SwiftMixin:
                 check_local_model_is_latest(
                     model.model_dir, user_agent={
                         'invoked_by': 'local_trainer',
-                        'third_party': 'swift',
+                        'third_party': 'verl',
                     })
         if eval_dataset is None and args:
             if getattr(args, 'eval_dataset', None):
@@ -113,7 +113,7 @@ class SwiftMixin:
         self.label_names = self.label_names or ['labels']
         self.start_time = time.time()
         if self.template.sequence_parallel_size > 1:
-            from swift.trainers.sequence_parallel import sequence_parallel
+            from verl.trainers.sequence_parallel import sequence_parallel
             sequence_parallel.prepare_trainer(self)
         self._fix_gradient_checkpointing()
         update_generation_config_eos_token(self.model.generation_config, self.template)
@@ -189,7 +189,7 @@ class SwiftMixin:
 
     def _save_model(self, output_dir: Optional[str] = None, state_dict=None):
         # model
-        supported_classes = (SwiftModel, PreTrainedModel, PeftModel)
+        supported_classes = (VerlModel, PreTrainedModel, PeftModel)
         supported_names = ('SentenceTransformer', )
         if AutoModelForCausalLMWithValueHead is not None:
             supported_classes = supported_classes + (AutoModelForCausalLMWithValueHead, )
@@ -250,14 +250,14 @@ class SwiftMixin:
                 with save_context():
                     self.model.save_pretrained(output_dir, safe_serialization=save_safetensors)
                     # copy sentencetransformers files
-                    from swift.utils import copy_files_by_pattern
+                    from verl.utils import copy_files_by_pattern
                     copy_files_by_pattern(
                         self.model.model_dir, output_dir, '*.py', exclude_patterns=['model.safetensors.index.json'])
                     copy_files_by_pattern(
                         self.model.model_dir, output_dir, '*.json', exclude_patterns=['model.safetensors.index.json'])
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
-        """Compatible with swift and peft"""
+        """Compatible with verl and peft"""
         # If we are executing this function, we are the process zero, so we don't check for that.
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
@@ -274,10 +274,10 @@ class SwiftMixin:
         if os.path.exists(predict_jsonl):
             shutil.move(predict_jsonl, os.path.join(output_dir, 'predict.jsonl'))
 
-        is_adapter = isinstance(self.model, (SwiftModel, PeftModel))
+        is_adapter = isinstance(self.model, (VerlModel, PeftModel))
         # tokenizer
         if not is_adapter:
-            from swift.llm import save_checkpoint
+            from verl.llm import save_checkpoint
             additional_saved_files = self.model_meta.additional_saved_files
             save_checkpoint(
                 None,
@@ -296,7 +296,7 @@ class SwiftMixin:
                 def _zero3_consolidated_16bit_state_dict(model, exclude_frozen_parameters=False):
                     unwrapped = unwrap_model(model)
                     exclude_frozen_parameters = False
-                    if isinstance(unwrapped, SwiftModel) and unwrapped.has_additional_modules:
+                    if isinstance(unwrapped, VerlModel) and unwrapped.has_additional_modules:
                         exclude_frozen_parameters = True
                     if isinstance(unwrapped, PeftModel):
                         exclude_frozen_parameters = True
@@ -366,7 +366,7 @@ class SwiftMixin:
             pass
 
     def _prepare_gradient_checkpointing(self, model) -> None:
-        from swift.llm import HfConfigFactory, get_model_arch, deep_getattr, dynamic_gradient_checkpointing
+        from verl.llm import HfConfigFactory, get_model_arch, deep_getattr, dynamic_gradient_checkpointing
         args = self.args
         HfConfigFactory.set_model_config_attr(model, 'use_cache', False)
         if args.gradient_checkpointing or args.vit_gradient_checkpointing:
@@ -483,7 +483,7 @@ class SwiftMixin:
 
     def create_optimizer_and_scheduler(self, num_training_steps: int):
         if self.args.optimizer is not None:
-            from swift.plugin import optimizers_map
+            from verl.plugin import optimizers_map
             optimizer_callback = optimizers_map[self.args.optimizer]
             self.optimizer, self.lr_scheduler = optimizer_callback(self.args, self.model, self.train_dataset)
             if self.optimizer is None:
@@ -570,7 +570,7 @@ class SwiftMixin:
 
     def get_batch_samples(self, *args, **kwargs):
         res = super().get_batch_samples(*args, **kwargs)
-        from swift.trainers.sequence_parallel import sequence_parallel
+        from verl.trainers.sequence_parallel import sequence_parallel
         if (self.template.sequence_parallel_size == 1 or 'Ulysses' == sequence_parallel.__class__.__name__
                 or 'RingAttention' == sequence_parallel.__class__.__name__):
             # ulysses and ring attention split inputs in the model hook, so no need to gather num_items_in_batch
@@ -579,7 +579,7 @@ class SwiftMixin:
         batch_samples, num_items_in_batch = res
         if num_items_in_batch is None:
             num_items_in_batch = torch.tensor(0).to(args[2])
-        from swift.trainers.sequence_parallel import sequence_parallel
+        from verl.trainers.sequence_parallel import sequence_parallel
         dist.all_reduce(num_items_in_batch, dist.ReduceOp.SUM, sequence_parallel.sp_group)
         return batch_samples, num_items_in_batch
 
@@ -607,7 +607,7 @@ class DataLoaderMixin:
     def get_train_dataloader(self, skip_batches=0):
         dataloader = None
         if self.template.sequence_parallel_size > 1:
-            from swift.trainers.sequence_parallel import sequence_parallel
+            from verl.trainers.sequence_parallel import sequence_parallel
             dataloader = sequence_parallel.get_dataloader(
                 self, self.train_dataset, self._train_batch_size, skip_batches=skip_batches)
         if dataloader is None:
@@ -651,7 +651,7 @@ class DataLoaderMixin:
     def get_eval_dataloader(self, eval_dataset=None):
         dataloader = None
         if self.template.sequence_parallel_size > 1:
-            from swift.trainers.sequence_parallel import sequence_parallel
+            from verl.trainers.sequence_parallel import sequence_parallel
             if eval_dataset is None and self.eval_dataset is None:
                 raise ValueError('Trainer: evaluation requires an eval_dataset.')
             eval_dataset = eval_dataset if eval_dataset is not None else self.eval_dataset

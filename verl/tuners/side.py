@@ -11,15 +11,15 @@ from typing import Union
 import torch
 from torch import nn
 
-from swift.utils.logger import get_logger
-from swift.utils.torch_utils import find_sub_module
-from .utils import ActivationMixin, SwiftAdapter, SwiftConfig, SwiftOutput
+from verl.utils.logger import get_logger
+from verl.utils.torch_utils import find_sub_module
+from .utils import ActivationMixin, VerlAdapter, VerlConfig, VerlOutput
 
 logger = get_logger()
 
 
 @dataclass
-class SideConfig(SwiftConfig):
+class SideConfig(VerlConfig):
     """
     The configuration class for the side module.
 
@@ -53,14 +53,14 @@ class SideConfig(SwiftConfig):
         })
 
     def __post_init__(self):
-        from .mapping import SwiftTuners
-        self.swift_type = SwiftTuners.SIDE
+        from .mapping import VerlTuners
+        self.verl_type = VerlTuners.SIDE
 
 
-class Side(SwiftAdapter):
+class Side(VerlAdapter):
 
     @staticmethod
-    def prepare_model(model: nn.Module, config: SideConfig, adapter_name: str) -> SwiftOutput:
+    def prepare_model(model: nn.Module, config: SideConfig, adapter_name: str) -> VerlOutput:
         """Prepare a model with `SideConfig`"""
         module_keys = [key for key, _ in model.named_modules()]
 
@@ -113,7 +113,7 @@ class Side(SwiftAdapter):
         def mark_trainable_callback(model):
             return
 
-        return SwiftOutput(
+        return VerlOutput(
             config=config, state_dict_callback=state_dict_callback, mark_trainable_callback=mark_trainable_callback)
 
     @staticmethod
@@ -123,7 +123,7 @@ class Side(SwiftAdapter):
             _module: ActivationMixin
             _module: nn.Module
             _module.set_activation(adapter_name, activate)
-            SwiftAdapter.save_memory(_module, adapter_name, _module.module_key, activate, offload)
+            VerlAdapter.save_memory(_module, adapter_name, _module.module_key, activate, offload)
 
 
 class SideModule(nn.Module, ActivationMixin):

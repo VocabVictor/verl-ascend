@@ -1,10 +1,11 @@
-# 35GiB - Agent training with Qwen2.5-3B
-CUDA_VISIBLE_DEVICES=0,1 \
+# 35GiB
+CUDA_VISIBLE_DEVICES=0 \
 verl sft \
     --model Qwen/Qwen2.5-3B \
     --train_type full \
-    --dataset 'glaiveai/glaive-function-calling-v2#1000' \
+    --dataset AI-ModelScope/function-calling-chatml \
     --split_dataset_ratio 0.01 \
+    --agent_template hermes \
     --torch_dtype bfloat16 \
     --num_train_epochs 2 \
     --per_device_train_batch_size 1 \
@@ -16,8 +17,11 @@ verl sft \
     --save_total_limit 2 \
     --logging_steps 5 \
     --max_length 8192 \
-    --output_dir ~/verl-outputs/experiments/agent_qwen25_$(date +%Y%m%d_%H%M%S) \
+    --save_only_model true \
+    --packing true \
+    --use_liger_kernel true \
+    --output_dir output \
     --warmup_ratio 0.05 \
+    --attn_impl flash_attn \
     --dataloader_num_workers 4 \
-    --prompt_key system \
-    --response_key chat
+    --dataset_num_proc 16

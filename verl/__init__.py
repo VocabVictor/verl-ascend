@@ -1,65 +1,55 @@
-# Copyright 2024 Bytedance Ltd. and/or its affiliates
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (c) Alibaba, Inc. and its affiliates.
+from typing import TYPE_CHECKING
 
-import logging
-import os
+from .utils.import_utils import _LazyModule
 
-import pkg_resources
-from packaging.version import parse as parse_version
-from pkg_resources import DistributionNotFound
+if TYPE_CHECKING:
+    from .version import __version__, __release_datetime__
+    from .tuners import (Adapter, AdapterConfig, AdapterModule, VerlModel, LoRA, LoRAConfig, VERL_MAPPING,
+                         AdaLoraConfig, LoftQConfig, LoHaConfig, LoKrConfig, LoraConfig, OFTConfig, PeftConfig,
+                         PeftModel, PeftModelForCausalLM, ResTuningConfig, SideConfig, PeftModelForSeq2SeqLM,
+                         PeftModelForSequenceClassification, PeftModelForTokenClassification, PrefixTuningConfig,
+                         PromptEncoderConfig, PromptLearningConfig, PromptTuningConfig, get_peft_config, get_peft_model,
+                         get_peft_model_state_dict, Prompt, PromptConfig, PromptModule, VerlConfig, VerlOutput, Verl,
+                         VerlTuners, LongLoRAConfig, LongLoRA, LongLoRAModelType, SCETuning, SCETuningConfig)
+    from .trainers import (EvaluationStrategy, FSDPOption, HPSearchBackend, HubStrategy, IntervalStrategy,
+                           SchedulerType, ShardedDDPOption, TrainingArguments, Seq2SeqTrainingArguments, Trainer,
+                           Seq2SeqTrainer)
+    from .utils import get_logger
+else:
+    _import_structure = {
+        'version': ['__release_datetime__', '__version__'],
+        'tuners': [
+            'Adapter', 'AdapterConfig', 'AdapterModule', 'VerlModel', 'LoRA', 'LoRAConfig', 'VERL_MAPPING',
+            'LoraConfig', 'AdaLoraConfig', 'LoftQConfig', 'LoHaConfig', 'LoKrConfig', 'OFTConfig', 'PeftConfig',
+            'ResTuningConfig', 'SideConfig', 'PeftModel', 'PeftModelForCausalLM', 'PeftModelForSeq2SeqLM',
+            'PeftModelForSequenceClassification', 'PeftModelForTokenClassification', 'PrefixTuningConfig',
+            'PromptEncoderConfig', 'PromptLearningConfig', 'PromptTuningConfig', 'get_peft_config', 'get_peft_model',
+            'get_peft_model_state_dict', 'Prompt', 'PromptConfig', 'PromptModule', 'VerlConfig', 'VerlOutput',
+            'Verl', 'VerlTuners', 'LongLoRAConfig', 'LongLoRA', 'LongLoRAModelType', 'SCETuning', 'SCETuningConfig'
+        ],
+        'trainers': [
+            'EvaluationStrategy',
+            'FSDPOption',
+            'HPSearchBackend',
+            'HubStrategy',
+            'IntervalStrategy',
+            'SchedulerType',
+            'ShardedDDPOption',
+            'TrainingArguments',
+            'Seq2SeqTrainingArguments',
+            'Trainer',
+            'Seq2SeqTrainer',
+        ],
+        'utils': ['get_logger']
+    }
 
-from .protocol import DataProto
-from .utils.distributed.device import is_npu_available
-from .utils.core.logging_utils import set_basic_config
+    import sys
 
-version_folder = os.path.dirname(os.path.join(os.path.abspath(__file__)))
-
-with open(os.path.join(version_folder, "version/version")) as f:
-    __version__ = f.read().strip()
-
-
-set_basic_config(level=logging.WARNING)
-
-
-__all__ = ["DataProto", "__version__"]
-
-if os.getenv("VERL_USE_MODELSCOPE", "False").lower() == "true":
-    import importlib
-
-    if importlib.util.find_spec("modelscope") is None:
-        raise ImportError("You are using the modelscope hub, please install modelscope by `pip install modelscope -U`")
-    # Patch hub to download models from modelscope to speed up.
-    from modelscope.utils.hf_util import patch_hub
-
-    patch_hub()
-
-if is_npu_available:
-    from .models.transformers import npu_patch as npu_patch
-
-    package_name = "transformers"
-    required_version_spec = "4.52.4"
-    try:
-        installed_version = pkg_resources.get_distribution(package_name).version
-        installed = parse_version(installed_version)
-        required = parse_version(required_version_spec)
-
-        if not installed >= required:
-            raise ValueError(
-                f"{package_name} version >= {required_version_spec} is required on ASCEND NPU, current version is "
-                f"{installed}."
-            )
-    except DistributionNotFound as e:
-        raise ImportError(
-            f"package {package_name} is not installed, please run pip install {package_name}=={required_version_spec}"
-        ) from e
+    sys.modules[__name__] = _LazyModule(
+        __name__,
+        globals()['__file__'],
+        _import_structure,
+        module_spec=__spec__,
+        extra_objects={},
+    )
